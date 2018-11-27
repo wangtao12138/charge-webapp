@@ -1,0 +1,79 @@
+package cn.com.cdboost.charge.webapi.rabbitmq;
+
+import cn.com.cdboost.charge.base.constant.GlobalConstant;
+import cn.com.cdboost.charge.base.constant.WebSocketConstant;
+import cn.com.cdboost.charge.base.handler.MyWebSocketHandler;
+import cn.com.cdboost.charge.base.info.Afn29Object;
+import cn.com.cdboost.charge.base.lisener.Afn29DataBackLisener;
+import cn.com.cdboost.charge.base.vo.WebSocketResponse;
+import cn.com.cdboost.charge.merchant.dubbo.DeviceService;
+import cn.com.cdboost.charge.webapi.dto.Afn29Response;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import jodd.util.StringUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+
+import javax.servlet.http.HttpSession;
+import java.math.BigDecimal;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+/**
+ * 充电桩设备信号强度实时推送
+ */
+@Slf4j
+@Component
+public class Afn29ResultDataBackLisener implements Afn29DataBackLisener {
+    @Reference(version = "1.0")
+    private DeviceService chargingDeviceService;
+
+    @Override
+    public void onDataBack(String afn29ObjectStr) {
+
+        Afn29Object afn29Object = JSON.parseObject(afn29ObjectStr, Afn29Object.class);
+
+        this.sendWebUser(afn29Object);
+    }
+
+    private void sendWebUser(Afn29Object afn29Object){
+        try {
+            CopyOnWriteArraySet<WebSocketSession> users = MyWebSocketHandler.users;
+            if (CollectionUtils.isEmpty(users)) {
+//                logger.info("webSocket 在线用户数为空");
+                return;
+            }
+            for (WebSocketSession session :users){
+                if (!session.isOpen()) {
+                    users.remove(session);
+                    continue;
+                }
+
+                HttpSession httpSession = (HttpSession) session.getAttributes().get(GlobalConstant.HTTP_SESSION_OBJECT);
+                if (httpSession != null){
+//                    logger.info("WebSocket中记录的sessionId=" + httpSession.getId());
+                    //主动推送
+                    WebSocketResponse<Afn29Response> response = new WebSocketResponse<>();
+                    Afn29Response afn29Response = new Afn29Response();
+                    //设备信号强度
+                    if (!StringUtil.isEmpty(afn29Object.getRssi())){
+                        afn29Response.setRssi(Integer.parseInt(afn29Object.getRssi()));
+                    }
+                    if (!StringUtil.isEmpty(afn29Object.getSnr())){
+                        afn29Response.setSnr(BigDecimal.valueOf(Double.valueOf(afn29Object.getSnr())));
+                    }
+                    afn29Response.setCommNo(afn29Object.getCommNo());
+                    response.setData(afn29Response);
+                    response.setDataFlag(WebSocketConstant.DataFlagEnum.WEB_DEVICE_SINGAL.getFlag());
+                    session.sendMessage(new TextMessage(JSON.toJSONString(response)));
+                    log.info("充电桩信号强度websocket send success: data=" + JSON.toJSONString(response));
+                }
+            }
+        }catch (Exception e) {
+            log.error("充电桩信号强度WebSocket推送数据异常",e);
+        }
+    }
+}

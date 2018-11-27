@@ -1,0 +1,181 @@
+package cn.com.cdboost.charge.webapi.dto.info;
+
+import java.math.BigDecimal;
+
+/**
+ * 充电桩IC卡列表
+ */
+public class ICCardResp {
+    private Integer cardState;
+    private String cardId;
+    private BigDecimal icRemainAmount = BigDecimal.ZERO;
+    private BigDecimal initAmount;
+    private BigDecimal remainAmount;
+    private Integer useCnt;
+    private Integer payCnt = 0;
+    private String createTime;
+    private String updateTime;
+    private String remark;
+    private String customerName;
+    private String customerContact;
+    private String customerType;
+    private String customerGuid;
+    private String webcharNo;
+    private String alipayUserId;
+    private Integer sendFlag;
+
+    private String cardGuid;
+    private String projectGuid;
+
+    public Integer getCardState() {
+        return cardState;
+    }
+
+    public void setCardState(Integer cardState) {
+        this.cardState = cardState;
+    }
+
+    public String getCardId() {
+        return cardId;
+    }
+
+    public void setCardId(String cardId) {
+        this.cardId = cardId;
+    }
+
+    public BigDecimal getRemainAmount() {
+        return remainAmount;
+    }
+
+    public void setRemainAmount(BigDecimal remainAmount) {
+        this.remainAmount = remainAmount;
+    }
+
+    public Integer getUseCnt() {
+        return useCnt;
+    }
+
+    public void setUseCnt(Integer useCnt) {
+        this.useCnt = useCnt;
+    }
+
+    public Integer getPayCnt() {
+        return payCnt;
+    }
+
+    public void setPayCnt(Integer payCnt) {
+        this.payCnt = payCnt;
+    }
+
+    public String getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(String createTime) {
+        this.createTime = createTime;
+    }
+
+    public String getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(String updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
+    }
+
+    public String getCustomerContact() {
+        return customerContact;
+    }
+
+    public void setCustomerContact(String customerContact) {
+        this.customerContact = customerContact;
+    }
+
+    public String getCustomerType() {
+        return customerType;
+    }
+
+    public void setCustomerType(String customerType) {
+        this.customerType = customerType;
+    }
+
+    public String getWebcharNo() {
+        return webcharNo;
+    }
+
+    public void setWebcharNo(String webcharNo) {
+        this.webcharNo = webcharNo;
+    }
+
+    public String getAlipayUserId() {
+        return alipayUserId;
+    }
+
+    public void setAlipayUserId(String alipayUserId) {
+        this.alipayUserId = alipayUserId;
+    }
+
+    public String getCustomerGuid() {
+        return customerGuid;
+    }
+
+    public void setCustomerGuid(String customerGuid) {
+        this.customerGuid = customerGuid;
+    }
+
+    public BigDecimal getIcRemainAmount() {
+        return icRemainAmount;
+    }
+
+    public void setIcRemainAmount(BigDecimal icRemainAmount) {
+        this.icRemainAmount = icRemainAmount;
+    }
+
+    public BigDecimal getInitAmount() {
+        return initAmount;
+    }
+
+    public void setInitAmount(BigDecimal initAmount) {
+        this.initAmount = initAmount;
+    }
+
+    public Integer getSendFlag() {
+        return sendFlag;
+    }
+
+    public void setSendFlag(Integer sendFlag) {
+        this.sendFlag = sendFlag;
+    }
+
+    public String getCardGuid() {
+        return cardGuid;
+    }
+
+    public void setCardGuid(String cardGuid) {
+        this.cardGuid = cardGuid;
+    }
+
+    public String getProjectGuid() {
+        return projectGuid;
+    }
+
+    public void setProjectGuid(String projectGuid) {
+        this.projectGuid = projectGuid;
+    }
+}

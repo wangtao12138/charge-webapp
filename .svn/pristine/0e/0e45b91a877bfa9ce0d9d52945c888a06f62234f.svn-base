@@ -1,0 +1,145 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.constant.GlobalConstant;
+import cn.com.cdboost.charge.base.constant.UserInfoKey;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.base.vo.LoginUser;
+import cn.com.cdboost.charge.user.dto.info.OrgInfo;
+import cn.com.cdboost.charge.user.dto.info.OrgTreeInfo;
+import cn.com.cdboost.charge.user.dubbo.OrgService;
+import com.alibaba.dubbo.config.annotation.Reference;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author wt
+ * @desc
+ * @create in  2018/11/20
+ **/
+@RestController
+@Api(value ="组织相关",tags = "组织相关接口")
+@RequestMapping("/api/webapi/v1/org")
+public class OrgController {
+
+
+    @Reference(version = "1.0")
+    OrgService orgService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+    /**
+     * 查询登录用户能看到的组织树信息
+     * @param session
+     * @return
+     */
+    @SystemControllerLog(description = "查询登录用户能看到的组织树信息")
+    @GetMapping(value = "queryOrgTreeInfo" )
+    @ApiOperation(notes = "查询登录用户能看到的组织树信息",value = "查询登录用户能看到的组织树信息")
+    public ApiResult queryOrgTreeInfo(HttpServletRequest request, HttpSession session, @RequestParam(value = "orgNo",required = false) String orgNo){
+        ApiResult<List<OrgTreeInfo>> result = new ApiResult<>();
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = String.valueOf(entries.get(UserInfoKey.USER_GUID)) ;
+        List<OrgTreeInfo> treeInfos = orgService.queryByUserId(Long.valueOf(userId),orgNo);
+        result.setData(treeInfos);
+        return result;
+    }
+
+    /**
+     * 修改
+     * @param session
+     * @return
+     */
+    @SystemControllerLog(description = "修改机构组织树信息")
+    @PutMapping(value = "edit" )
+    @ApiOperation(notes = "修改机构组织树信息",value = "修改机构组织树信息")
+    public ApiResult queryOrgTreeInfoEdit(HttpServletRequest request, HttpSession session,
+                                       @RequestParam String orgNo,
+                                       @RequestParam String orgName,
+                                       @RequestParam String pOrgNo
+
+    ){
+        ApiResult result = new ApiResult<>("成功");
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = String.valueOf(entries.get(UserInfoKey.USER_GUID)) ;
+        int treeInfos = orgService.updateByorgNo(orgNo,orgName, Integer.valueOf(userId), pOrgNo);
+        if(treeInfos!=1){
+            result.error("修改失败");
+        }else{
+            LoginUser user = (LoginUser) session.getAttribute(GlobalConstant.CURRENT_LOGIN_USER);
+          /*  userLogService.create(user.getId(), Action.CHANGE_METER.getActionId(),"用户档案","customerNo", orgNo, "修改机构组织["+orgName+"]",JSON.toJSONString(orgNo));*/
+        }
+        return result;
+    }
+    /**
+     * 新增机构
+     * @param session
+     * @return
+     */
+    @SystemControllerLog(description = "新增机构组织树信息")
+    @PostMapping(value = "add" )
+    @ApiOperation(notes = "新增机构组织树信息",value = "新增机构组织树信息")
+    public ApiResult queryOrgTreeInfoAdd(HttpServletRequest request,HttpSession session,
+                                      @RequestParam String orgName,
+                                      @RequestParam String pOrgNo
+    )
+    {
+        ApiResult<List<OrgTreeInfo>> result = new ApiResult<>("成功");
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = String.valueOf(entries.get(UserInfoKey.USER_GUID)) ;
+        int treeInfos = orgService.addByorgNo(pOrgNo,orgName, Integer.valueOf(userId));
+        if(treeInfos!=1){
+            result.error("新增失败");
+        }else{
+           /* LoginUser user = (LoginUser) session.getAttribute(GlobalConstant.CURRENT_LOGIN_USER);
+            userLogService.create(user.getId(), Action.CHANGE_METER.getActionId(),"用户档案","customerNo", orgName, "新增机构组织["+orgName+"]",JSON.toJSONString(orgName));*/
+        }
+
+        return result;
+    }
+    /**
+     * 删除机构
+     * @param
+     * @return
+     */
+    @SystemControllerLog(description = "删除机构组织树信息")
+    @RequestMapping(value = "delete" , method = RequestMethod.POST)
+    @ResponseBody
+    public ApiResult queryOrgTreeInfoDelete(HttpSession session,
+                                         @RequestParam Long orgNo
+    ){
+        ApiResult<List<OrgTreeInfo>> result = new ApiResult<>("成功");
+        OrgInfo org = orgService.queryByOrgNo(orgNo);
+        if (org == null) {
+            result.error("该组织不存在");
+            return result;
+        }
+
+        if(org.getIsSystem()==1){
+            result.error("系统初始信息无法删除");
+            return result;
+        }
+
+        int treeInfos = orgService.deletebyorgNo(orgNo);
+        if(treeInfos==0){
+            result.error("删除失败");
+        }else{
+         /*   LoginUser user = (LoginUser) session.getAttribute(GlobalConstant.CURRENT_LOGIN_USER);
+            String s = org != null ? org.getOrgName() : "";
+            userLogService.create(user.getId(), Action.CHANGE_METER.getActionId(),"用户档案","customerNo", String.valueOf(orgNo), "删除机构组织["+s+"]",JSON.toJSONString(orgNo));*/
+        }
+
+        return result;
+    }
+}

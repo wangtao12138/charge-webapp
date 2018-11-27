@@ -1,0 +1,218 @@
+package cn.com.cdboost.charge.webapi.service.Impl;
+
+
+import cn.com.cdboost.charge.base.exception.BusinessException;
+import cn.com.cdboost.charge.base.util.DateUtil;
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.customer.dubbo.CustomerToMerchantService;
+import cn.com.cdboost.charge.customer.vo.info.UseDetailListInfo;
+import cn.com.cdboost.charge.customer.vo.param.IncomePageQueryParam;
+import cn.com.cdboost.charge.merchant.dubbo.PaySchemeService;
+import cn.com.cdboost.charge.merchant.dubbo.ProjectService;
+import cn.com.cdboost.charge.merchant.vo.info.ChargerSchemeVo;
+import cn.com.cdboost.charge.merchant.vo.info.ChargingSchemeVo;
+import cn.com.cdboost.charge.merchant.vo.info.ProjectVo;
+import cn.com.cdboost.charge.merchant.vo.info.SchemeEditVo;
+import cn.com.cdboost.charge.merchant.vo.param.ProjectQueryParam;
+import cn.com.cdboost.charge.webapi.dto.info.*;
+import cn.com.cdboost.charge.webapi.dto.param.ChargingSchemeDto;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectParam;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectSchemeQuery;
+import cn.com.cdboost.charge.webapi.dto.param.SchemeEditParam;
+import cn.com.cdboost.charge.webapi.service.ProjectWrapper;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.google.common.collect.Lists;
+import jodd.util.StringUtil;
+import org.apache.curator.shaded.com.google.common.collect.Lists;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+<<<<<<< .mine
+import cn.com.cdboost.charge.merchant.vo.dto.ProjectInfoDto;
+=======
+import org.springframework.util.CollectionUtils;
+
+>>>>>>> .r271
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * 站点相关接口实现
+ */
+@Service
+public class ProjectWrapperImpl implements ProjectWrapper {
+    @Reference(version = "1.0")
+    private ProjectService projectService;
+
+    @Reference(version = "1.0")
+    private PaySchemeService paySchemeService;
+
+    @Reference(version = "1.0")
+    private CustomerToMerchantService customerToMerchantService;
+
+    @Override
+    public void addProject(ProjectParam projectParam) {
+        ProjectVo projectVo = new ProjectVo();
+        BeanUtils.copyProperties(projectParam,projectVo);
+        projectService.addProject(projectVo);
+    }
+
+    @Override
+    public void updateProject(ProjectParam projectParam) {
+        ProjectVo projectVo = new ProjectVo();
+        BeanUtils.copyProperties(projectParam,projectVo);
+        projectService.updateProject(projectVo);
+    }
+
+    @Override
+    public void deleteProjectByProjectGuids(List<String> projectGuids) {
+        projectService.deleteProjectByProjectGuids(projectGuids);
+    }
+
+    @Override
+    public PageData<ProjectResp> queryProjects(ProjectSchemeQuery param) {
+        ProjectQueryParam queryParam = new ProjectQueryParam();
+        BeanUtils.copyProperties(param,queryParam);
+        PageData pageData = projectService.queryProjectByPropertyGuid(queryParam);
+        return pageData;
+    }
+
+    @Override
+    public ProjectDetailResp queryProjectDetail(String projectGuid) {
+        ProjectDetailResp resp = new ProjectDetailResp();
+        ProjectVo projectVo = projectService.queryProjectDetail(projectGuid);
+        BeanUtils.copyProperties(projectVo,resp);
+        return resp;
+    }
+
+    @Override
+    public void offOnScheme(String schemeGuid, Integer onOrOff) {
+        paySchemeService.offOnScheme(schemeGuid,onOrOff);
+    }
+
+    @Override
+    public void editScheme(SchemeEditParam param) {
+        SchemeEditVo schemeEditVo = new SchemeEditVo();
+        List<ChargingSchemeVo> schemeList = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(param.getSchemeList())){
+            for (ChargingSchemeDto chargingSchemeDto : param.getSchemeList()) {
+                ChargingSchemeVo vo = new ChargingSchemeVo();
+                BeanUtils.copyProperties(chargingSchemeDto,vo);
+                schemeList.add(vo);
+            }
+        }
+        schemeEditVo.setSchemeList(schemeList);
+        paySchemeService.editScheme(schemeEditVo);
+    }
+
+    @Override
+    public List<SchemePofitableResp> countProfitable(ProjectSchemeQuery queryVo) {
+        //转换成开始和结束时间
+        this.getTime(queryVo);
+        //TODO 客户服务查询
+        return null;
+    }
+
+    /**
+     * 将前端传的统计类型转换成开始和结束时间
+     * @param queryVo
+     * @return
+     */
+    private ProjectSchemeQuery getTime(ProjectSchemeQuery queryVo){
+        Integer countType = queryVo.getCountType();
+        Calendar c = Calendar.getInstance();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date now = new Date();
+        c.setTime(now);
+        queryVo.setEndTime(DateUtil.formatDate(now));
+        switch (countType){
+            case 1:
+                //过去七天
+                c.add(Calendar.DATE, - 7);
+                Date d = c.getTime();
+                String day = format.format(d);
+                queryVo.setBeginTime(day);
+                break;
+            case 2:
+                //过去一月
+                c.add(Calendar.MONTH, -1);
+                Date m = c.getTime();
+                String mon = format.format(m);
+                queryVo.setBeginTime(mon);
+                break;
+            case 3:
+                //过去三个月
+                c.add(Calendar.MONTH, -3);
+                Date m3 = c.getTime();
+                String mon3 = format.format(m3);
+                queryVo.setBeginTime(mon3);
+        }
+        return queryVo;
+    }
+
+    @Override
+    public PageData<ChargingUseDetailedResp> shemeUseList(ProjectSchemeQuery queryVo) {
+        if (StringUtil.isEmpty(queryVo.getSchemeGuid())){
+            throw new BusinessException("schemeGuid不能为空");
+        }
+        //转换成开始和结束时间
+        this.getTime(queryVo);
+        IncomePageQueryParam param = new IncomePageQueryParam();
+        BeanUtils.copyProperties(queryVo,param);
+        PageData<UseDetailListInfo> useDetailListInfoPageData = customerToMerchantService.queryUseDetailList(param);
+        PageData<ChargingUseDetailedResp> pageData = new PageData<>();
+        if (!CollectionUtils.isEmpty(useDetailListInfoPageData.getList())){
+            List<ChargingUseDetailedResp> respList = Lists.newArrayList();
+            for (UseDetailListInfo info : useDetailListInfoPageData.getList()) {
+                ChargingUseDetailedResp resp = new ChargingUseDetailedResp();
+                BeanUtils.copyProperties(info,resp);
+                respList.add(resp);
+            }
+            pageData.setList(respList);
+            pageData.setTotal(useDetailListInfoPageData.getTotal());
+        }
+        return pageData;
+    }
+
+    @Override
+    public List<ChargerSchemeResp> shemeList(ProjectSchemeQuery queryVo) {
+        List<ChargerSchemeVo> chargerSchemeVos = paySchemeService.querySchemeList(queryVo.getProjectGuid(), queryVo.getSchemeType());
+        List<ChargerSchemeResp> respList = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(chargerSchemeVos)){
+            for (ChargerSchemeVo chargerSchemeVo : chargerSchemeVos) {
+                ChargerSchemeResp resp = new ChargerSchemeResp();
+                BeanUtils.copyProperties(chargerSchemeVo,resp);
+                if (!CollectionUtils.isEmpty(chargerSchemeVo.getSchemeList())){
+                    List<ChargingSchemeDto> chargingSchemeDtos = Lists.newArrayList();
+                    for (cn.com.cdboost.charge.merchant.vo.info.ChargingSchemeDto chargingSchemeDto : chargerSchemeVo.getSchemeList()) {
+                        ChargingSchemeDto dto = new ChargingSchemeDto();
+                        BeanUtils.copyProperties(chargingSchemeDto,dto);
+                        chargingSchemeDtos.add(dto);
+                    }
+                    resp.setSchemeList(chargingSchemeDtos);
+                    respList.add(resp);
+                }
+            }
+        }
+        return respList;
+    }
+
+    @Override
+    public List<ProjectResp> queryAllProject(Integer userId) {
+        List<ProjectVo> projectVos = projectService.queryAllProject(userId);
+        List<ProjectResp>projectResps= Lists.newArrayList();
+        for (ProjectVo projectVo : projectVos) {
+            ProjectResp resp=new ProjectResp();
+            BeanUtils.copyProperties(projectVo,resp);
+            projectResps.add(resp);
+        }
+        return projectResps;
+    }
+
+    @Override
+    public List<ProjectInfoDto> queryProjectTreeByName(Set<Long> dataOrgNos, String projectName) {
+        return projectService.queryProjectTreeByName(dataOrgNos, projectName);
+    }
+}

@@ -1,0 +1,150 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.user.service.OrgService;
+import cn.com.cdboost.charge.user.service.RoleService;
+import cn.com.cdboost.charge.user.service.UserService;
+import cn.com.cdboost.charge.webapi.dto.info.LoginSuccessInfoVo;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.alibaba.fastjson.JSON;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+
+@Api(value = "用户登陆管理",tags = "用户登陆相关接口")
+@RestController
+@RequestMapping(value = "/api/webapi/v1/login/")
+public class LoginController {
+	private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
+
+	@Reference
+	private UserService userService;
+	@Reference
+	private RoleService roleService;
+	@Reference
+	private OrgService orgService;
+	/*@Reference
+	private UserLogService userLogService;*/
+	/**
+	 * 用户登录
+	 * @param request
+	 * @param session
+	 * @param loginName
+	 * @param password
+	 * @return
+	 */
+	@ApiOperation(value="用户登录", notes="验证用户登陆")
+	@ApiImplicitParams({
+            @ApiImplicitParam(name = "loginName", value = "登陆名", required = true),
+            @ApiImplicitParam(name = "password", value = "密码", required = true)}
+	      )
+	@GetMapping(value = "/{loginName}/{password}")
+	public String login(HttpServletRequest request, HttpSession session, @PathVariable String loginName, @PathVariable String password)  {
+        ApiResult<LoginSuccessInfoVo> result = new ApiResult<>();
+		if (StringUtils.isEmpty(loginName)) {
+			result.error("用户名不能为空");
+			return JSON.toJSONString(result);
+		}
+		if (StringUtils.isEmpty(password)) {
+			result.error("密码不能为空");
+			return JSON.toJSONString(result);
+		}
+		/*User currentUser = userService.getUserByLoginName(loginName);
+		if (currentUser == null) {
+			result.error("用户名或密码错误");
+			return JSON.toJSONString(result);
+		}
+
+		Subject subject = SecurityUtils.getSubject();
+		UsernamePasswordToken token = new UsernamePasswordToken(loginName, CryptographyUtil.md5(DESUtil.decryption(password,GlobalConstant.SECRET_KEY), GlobalConstant.SECRET_SALT));
+		// 登录验证
+		try {
+			subject.login(token);
+		} catch (Exception e) {
+			String message = "用户名或密码错误";
+			logger.error(message,e);
+			result.error(message);
+			return JSON.toJSONString(result);
+		}
+
+		LoginUser loginUser = new LoginUser();
+		BeanUtils.copyProperties(currentUser,loginUser);
+
+		// 查询用户拥有的所有组织权限
+		List<Org> orgs = orgService.queryChildren(currentUser.getOrgNo());
+		List<Long> orgNoList = Lists.newArrayList();
+		for (Org org : orgs) {
+			orgNoList.add(org.getOrgNo());
+		}
+
+		// 查询用户角色
+		Long roleId = userService.getRoleIdByUserID(currentUser.getId());
+		loginUser.setRoleId(roleId);
+		loginUser.setSessionId(session.getId());
+
+		// 查询用户角色权限信息
+		List<RoleRight> rolePermissions = roleService.getRolePermissionByRoleId(roleId);
+
+		// 获取真实client端IP
+		String clientIpAddr = HttpUtil.getClientIpAddr(request);
+		logger.info("登录用户clientIP=" + clientIpAddr);
+
+		// session缓存
+		session.setAttribute(GlobalConstant.ORG_NO_LIST,orgNoList);
+		session.setAttribute(GlobalConstant.CLIENT_REAL_IP,clientIpAddr);
+		session.setAttribute(GlobalConstant.SESSION_AUTHS, rolePermissions);
+		session.setAttribute(GlobalConstant.CURRENT_LOGIN_USER, loginUser);
+		session.setAttribute("TIMEOUT_FLAG", System.currentTimeMillis());
+		logger.info("登录用户的sessionId=" + session.getId());
+
+		//需要返回的用户信息,需修改，直接返回实体对象
+		LoginSuccessInfo successInfo = new LoginSuccessInfo();
+		successInfo.setUserId(currentUser.getId());
+		successInfo.setUserName(currentUser.getUserName());
+		successInfo.setUserMobile(currentUser.getUserMobile());
+		successInfo.setUserMail(currentUser.getUserMail());
+		result.setData(successInfo);
+		userLogService.create(currentUser.getId(), Action.LOGING.getActionId(),"用户登录","loginName",loginName,"用户["+currentUser.getUserName()+"]从["+clientIpAddr+"]登录","loginName:["+currentUser.getUserName()+"]");
+		return JSON.toJSONString(result);*/
+		return "";
+	}
+
+
+	/**
+	 * 用户退出系统
+	 * @param session
+	 * @return
+	 */
+	@SystemControllerLog(description = "用户退出系统")
+	@RequestMapping(value = "/logout",method={RequestMethod.POST})
+	@ResponseBody
+	public String logout(HttpSession session) {
+		/*LoginUser currentUser = (LoginUser)session.getAttribute(GlobalConstant.CURRENT_LOGIN_USER);
+		if(currentUser!=null){
+			userLogService.create(currentUser.getId(), Action.LOGINGOUT.getActionId(),"用户登出","loginName",currentUser.getUserName(),"用户["+currentUser.getUserName()+"]退出","loginName:[\""+currentUser.getUserName()+"\"]");
+		}
+		// 清空session中所有属性
+		Enumeration<String> attributeNames = session.getAttributeNames();
+		while (attributeNames.hasMoreElements()) {
+			session.removeAttribute(attributeNames.nextElement().toString());
+		}
+
+		// session设置成无效
+		session.invalidate();
+
+		Result result = new Result();
+		return JSON.toJSONString(result);*/
+        return "";
+	}
+}

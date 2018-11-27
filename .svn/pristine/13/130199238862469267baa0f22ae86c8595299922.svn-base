@@ -1,0 +1,29 @@
+package cn.com.cdboost.charge.webapi.dto.param;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+
+@Setter
+@Getter
+public class ChargingSchemeDto {
+    private String schemeGuid;
+    private String merchantGuid;
+    private Integer chargingCnt;
+    private BigDecimal realMoney;
+    private Integer chargingTime;
+    //0添加，1删除
+    private Integer flag;
+
+    //方案类别
+    private Integer payCategory;
+
+    private String projectGuid;
+    private Integer minPower;
+    private Integer maxPower;
+    private Integer power;
+    private Integer isEnable;
+    //方案类型
+    private Integer schemeType;
+}

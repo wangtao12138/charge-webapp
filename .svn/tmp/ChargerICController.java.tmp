@@ -1,0 +1,266 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.constant.UserInfoKey;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.customer.dubbo.CustomerToMerchantService;
+import cn.com.cdboost.charge.customer.vo.info.CustomerPayCardInfo;
+import cn.com.cdboost.charge.customer.vo.info.IcCardUseDetailedVo;
+import cn.com.cdboost.charge.merchant.dubbo.IcCardService;
+import cn.com.cdboost.charge.merchant.vo.info.IcCardDetailVo;
+import cn.com.cdboost.charge.merchant.vo.param.IcCardParam;
+import cn.com.cdboost.charge.webapi.dto.info.CardListResp;
+import cn.com.cdboost.charge.webapi.dto.info.ICCardResp;
+import cn.com.cdboost.charge.webapi.dto.param.*;
+import cn.com.cdboost.charge.webapi.service.GenerateFileServiceWrapper;
+import cn.com.cdboost.charge.webapi.service.IcCardWrapper;
+import cn.com.cdboost.charge.webapi.util.DownLoadUtil;
+import com.alibaba.dubbo.config.annotation.Reference;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+<<<<<<< .mine
+import org.springframework.stereotype.Controller;
+=======
+>>>>>>> .r288
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 充电桩IC卡管理
+ */
+@Slf4j
+@Api(value = "充电桩IC卡管理",tags = "充电桩IC卡管理")
+@RestController
+@RequestMapping(value = "/api/webapi/v1/ICCards")
+public class ChargerICController {
+
+    @Reference(version = "1.0")
+    private IcCardService icCardService;
+
+    @Reference(version = "1.0")
+    private CustomerToMerchantService customerToMerchantService;
+    @Autowired
+    private IcCardWrapper icCardWrapper;
+    @Autowired
+    private GenerateFileServiceWrapper generateFileService;
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @SystemControllerLog(description = "充电IC卡列表查询")
+    @ApiOperation(value="充电IC卡列表查询", notes="充电IC卡列表查询")
+    @ApiImplicitParam(name = "ICCardQueryParam", value = "ic卡列表查询对象", required = true, dataType ="ICCardQueryParam")
+    @GetMapping
+    public ApiResult<PageData<ICCardResp>> queryList(HttpServletRequest request, @ModelAttribute ICCardQueryParam param){
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        Integer userId = (Integer) entries.get(UserInfoKey.USER_GUID);
+        ApiResult<PageData<ICCardResp>> result=new ApiResult();
+        //查询数据库
+        PageData<ICCardResp> cards = icCardWrapper.queryList(param,userId);
+        result.setData(cards);
+        return result;
+    }
+
+    @SystemControllerLog(description = "充电桩IC卡列表下载")
+    @ApiOperation(value="充电桩IC卡列表下载", notes="充电桩IC卡列表下载")
+    @ApiImplicitParam(name = "ICCardQueryParam", value = "ic卡列表查询对象", required = true, dataType ="ICCardQueryParam")
+    @GetMapping(value = "/excel")
+    public void downloadList(HttpServletRequest request, HttpServletResponse response, ICCardQueryParam param){
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        Integer userId = (Integer) entries.get(UserInfoKey.USER_GUID);
+        //查询数据库
+        PageData<ICCardResp> cards = icCardWrapper.queryList(param,userId);
+        try {
+            XSSFWorkbook workBook = generateFileService.generateChargingICCardListExcel("充电桩IC卡列表",cards.getList());
+            DownLoadUtil.downExcel(response,workBook);
+        } catch (Exception e) {
+            String message = "充电桩IC卡列表";
+            log.error(message,e);
+        }
+    }
+
+    @SystemControllerLog(description = "添加充电IC卡")
+    @ApiOperation(value="添加充电IC卡", notes="添加充电IC卡")
+    @ApiImplicitParam(name = "ChargerICCardAddParam", value = "添加ic卡对象", required = true, dataType ="ChargerICCardAddParam")
+    @PostMapping
+    public ApiResult add( @Valid @RequestBody ChargerICCardAddParam param){
+        ApiResult result=new ApiResult();
+        //添加卡
+        icCardWrapper.addCard(param);
+        //添加cardlist
+        icCardWrapper.addCardList(param, result);
+        result.setMessage("添加成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "编辑充电IC卡")
+    @ApiOperation(value="编辑充电IC卡", notes="编辑充电IC卡")
+    @ApiImplicitParam(name = "ChargerICCardEditParam", value = "ic卡编辑对象", required = true, dataType ="ChargerICCardEditParam")
+    @PutMapping
+    public ApiResult edit(@Valid @RequestBody ChargerICCardEditParam param){
+        ApiResult result=new ApiResult();
+
+        //查询修改前所属的项目
+        IcCardDetailVo cardDetailVo = icCardService.queryIcDetail(param.getCardId());
+        //调用业务层
+        icCardWrapper.editCard(param);
+        if (!cardDetailVo.getProjectGuid().equals(param.getProjectGuid())){
+            //添加cardlist
+            icCardWrapper.editCardList(param, cardDetailVo.getProjectGuid(), result);
+        }
+        result.setMessage("修改成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "删除充电IC卡")
+    @ApiOperation(value="删除充电IC卡", notes="删除充电IC卡")
+    @ApiImplicitParam(name = "cardIds", value = "ic卡卡号集合", required = true, dataType ="cardIds")
+    @DeleteMapping
+    public ApiResult delete(@RequestBody List<String> cardIds){
+        ApiResult result=new ApiResult();
+
+        //调用业务层
+        icCardService.deleteCards(cardIds);
+        icCardService.deleteCardList(cardIds);
+        result.setMessage("删除成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "批量停用启用充电IC卡")
+    @ApiOperation(value="批量停用启用充电IC卡", notes="批量停用启用充电IC卡")
+    @ApiImplicitParam(name = "OffOnCardParam", value = "批量停用启用ic卡参数", required = true, dataType ="OffOnCardParam")
+    @PutMapping(value = "/offOnCard")
+    public ApiResult offOnCard(@RequestBody OffOnCardParam param){
+        ApiResult result=new ApiResult();
+
+        //修改card表
+        icCardService.offOnCard(param.getCardIds(),param.getOnOrOff());
+        //修改cardlist表
+        icCardService.offOnCardList(param.getCardIds(),param.getOnOrOff());
+        result.setMessage("操作成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "查询ic卡下发列表")
+    @ApiOperation(value="查询ic卡下发列表", notes="查询ic卡下发列表")
+    @ApiImplicitParam(name = "ICCardQueryParam", value = "ic卡下发列表查询参数", required = true, dataType ="ICCardQueryParam")
+    @GetMapping(value = "/cardSendList")
+    public ApiResult<PageData<CardListResp>> queryCardSendList(@RequestBody ICCardQueryParam queryVo){
+        ApiResult<PageData<CardListResp>> result=new ApiResult();
+
+        PageData<CardListResp> cardListDtos = icCardWrapper.queryCardSendList(queryVo);
+        result.setData(cardListDtos);
+        return result;
+    }
+
+    @SystemControllerLog(description = "下发充电IC卡")
+    @ApiOperation(value="下发充电IC卡", notes="下发充电IC卡")
+    @PutMapping(value = "/sendCard")
+    public ApiResult sendCard(HttpSession session, @RequestBody List<SendAndReadCardParam> param){
+        ApiResult result=new ApiResult();
+
+        //chargingCardService.sendCard(param,session.getId());
+        //userLogService.create(currentUser.getId(), Action.MODIFY.getActionId(), "充电桩IC卡", "", "","下发["+param.getCardIds().toString()+"]充电IC卡",JSON.toJSONString(param));
+        result.setMessage("发送指令成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "读取充电IC卡")
+    @ApiOperation(value="读取充电IC卡", notes="读取充电IC卡")
+    @ApiImplicitParam(name = "SendAndReadCardParam", value = "设备通信编号集合", required = true, dataType ="SendAndReadCardParam")
+    @PutMapping(value = "/readCard")
+    public ApiResult readCard(HttpSession session, @RequestBody List<SendAndReadCardParam> param){
+        ApiResult result=new ApiResult();
+
+        //chargingCardService.readCard(param,session.getId());
+        //userLogService.create(currentUser.getId(), Action.MODIFY.getActionId(), "充电桩IC卡", "", "","下发["+param.getCardIds().toString()+"]充电IC卡",JSON.toJSONString(param));
+        result.setMessage("发送指令成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "清除设备ic卡信息")
+    @ApiOperation(value="清除设备ic卡信息", notes="清除设备ic卡信息")
+    @ApiImplicitParam(name = "commNos", value = "设备通信编号集合", required = true, dataType ="commNos")
+    @PutMapping(value = "/clearCard")
+    public ApiResult clearCard(HttpSession session, @RequestBody List<String> commNos){
+        ApiResult result=new ApiResult();
+
+        //chargingCardService.clearCard(commNos,session.getId());
+        //userLogService.create(currentUser.getId(), Action.MODIFY.getActionId(), "充电桩IC卡", "", "","下发["+param.getCardIds().toString()+"]充电IC卡",JSON.toJSONString(param));
+        result.setMessage("发送指令成功！");
+        return result;
+    }
+
+    @SystemControllerLog(description = "充电IC卡充值记录查询")
+    @ApiOperation(value="充电IC卡充值记录查询", notes="充电IC卡充值记录查询")
+    @ApiImplicitParam(name = "ICCardQueryParam", value = "ic卡充值记录列表查询参数", required = true, dataType ="ICCardQueryParam")
+    @GetMapping(value = "/payList")
+    public ApiResult<PageData<CustomerPayCardInfo>> queryPayList(@RequestBody ICCardQueryParam queryVo){
+        ApiResult result=new ApiResult();
+        //查询数据库
+        PageData<CustomerPayCardInfo> chargingICPayDtos = icCardWrapper.queryICCardPayList(queryVo);
+        result.setData(chargingICPayDtos);
+        return result;
+    }
+
+    @SystemControllerLog(description = "充电IC卡充值记录下载")
+    @ApiOperation(value="充电IC卡充值记录下载", notes="充电IC卡充值记录下载")
+    @ApiImplicitParam(name = "ICCardQueryParam", value = "ic卡充值记录列表查询参数", required = true, dataType ="ICCardQueryParam")
+    @GetMapping(value = "/payList/excel")
+    public void downloadPayList(HttpServletResponse response, ICCardQueryParam queryVo){
+        //查询数据库
+        PageData<CustomerPayCardInfo> chargingICPayDtos = icCardWrapper.queryICCardPayList(queryVo);
+        try {
+            XSSFWorkbook workBook = generateFileService.generateChargingICPayListExcel("充电桩IC卡充值记录列表",chargingICPayDtos.getList());
+            DownLoadUtil.downExcel(response,workBook);
+        } catch (Exception e) {
+            String message = "充电桩IC卡充值记录列表";
+            log.error(message,e);
+        }
+    }
+
+    @SystemControllerLog(description = "充电IC卡使用记录查询")
+    @ApiOperation(value="充电IC卡使用记录查询", notes="充电IC卡使用记录查询")
+    @RequestMapping(value = "/useList")
+    public ApiResult queryUseListByIC(@RequestBody ICCardQueryParam queryVo){
+        ApiResult result=new ApiResult();
+        //查询数据库
+        IcCardParam param = new IcCardParam();
+        BeanUtils.copyProperties(queryVo,param);
+        PageData<IcCardUseDetailedVo> deviceUseDetailedVoPageData = customerToMerchantService.queryICCardUseList(param);
+        result.setData(deviceUseDetailedVoPageData);
+        return result;
+    }
+
+    @SystemControllerLog(description = "充电IC卡使用记录下载")
+    @ApiOperation(value="充电IC卡使用记录下载", notes="充电IC卡使用记录下载")
+    @RequestMapping(value = "/downloadUseList")
+    @ResponseBody
+    public void downloadUseList(HttpServletResponse response, ICCardQueryParam queryVo){
+        //查询数据库
+        IcCardParam param = new IcCardParam();
+        BeanUtils.copyProperties(queryVo,param);
+        PageData<IcCardUseDetailedVo> deviceUseDetailedVoPageData = customerToMerchantService.queryICCardUseList(param);
+        try {
+            XSSFWorkbook workBook = generateFileService.generateChargingICUseListExcel("充电桩IC卡使用记录列表",deviceUseDetailedVoPageData.getList());
+            DownLoadUtil.downExcel(response,workBook);
+        } catch (Exception e) {
+            String message = "充电桩IC卡使用记录列表";
+            log.error(message,e);
+        }
+    }
+}

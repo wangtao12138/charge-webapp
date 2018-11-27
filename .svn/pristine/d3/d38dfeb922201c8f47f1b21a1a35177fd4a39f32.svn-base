@@ -1,0 +1,53 @@
+package cn.com.cdboost.charge.webapi.rabbitmq;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.StopWatch;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class RabbitProducerApplicationTests {
+
+    @Autowired
+    private RabbitMQProducer producer;
+
+    @Test
+    public void sendCharge1() {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        for (int i = 0; i < 10; i++) {
+            String msg = "hello world,my name is test" + i;
+            producer.sendCharge1(msg);
+        }
+        stopWatch.stop();
+        System.out.println("发送总耗时：" + stopWatch.getTotalTimeMillis());
+    }
+
+
+    @Test
+    public void sendCharge2() {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        for (int i = 0; i < 10; i++) {
+            String msg = "hello world,my name is test" + i;
+            producer.sendCharge2(msg);
+        }
+        stopWatch.stop();
+        System.out.println("发送总耗时：" + stopWatch.getTotalTimeMillis());
+    }
+
+    @Test
+    public void sendFanout() {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        for (int i = 0; i < 10; i++) {
+            String msg = "hello world,my name is fanout" + i;
+            producer.sendFanout(msg);
+        }
+        stopWatch.stop();
+        System.out.println("发送总耗时：" + stopWatch.getTotalTimeMillis());
+    }
+}

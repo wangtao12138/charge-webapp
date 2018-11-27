@@ -1,0 +1,219 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.constant.UserInfoKey;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.webapi.dto.info.*;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectParam;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectSchemeQuery;
+import cn.com.cdboost.charge.webapi.dto.param.SchemeEditParam;
+import cn.com.cdboost.charge.webapi.service.GenerateFileServiceWrapper;
+import cn.com.cdboost.charge.webapi.service.ProjectWrapper;
+import cn.com.cdboost.charge.webapi.util.DownLoadUtil;
+import com.alibaba.fastjson.JSON;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 充电桩项目方案管理
+ */
+@Slf4j
+@Api(value = "站点相关接口",tags = "站点综合管理接口")
+@RestController
+@RequestMapping(value = "/api/webapi/v1/projects")
+public class ChargerSchemeController {
+
+    @Autowired
+    private ProjectWrapper projectWrapper;
+
+    @Autowired
+    private GenerateFileServiceWrapper generateFileServiceWrapper;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+
+    @SystemControllerLog(description = "查询站点详情")
+    @ApiOperation(value="查询站点详情")
+    @ApiImplicitParam(name = "projectGuid", value = "站点guid", required = true, dataType ="projectGuid")
+    @GetMapping(value = "/{projectGuid}")
+    public ApiResult<ProjectDetailResp> queryProjectByProGuid(@PathVariable String projectGuid){
+        ApiResult result=new ApiResult();
+        ProjectDetailResp projectVo = projectWrapper.queryProjectDetail(projectGuid);
+        result.setData(projectVo);
+        return result;
+    }
+
+    @SystemControllerLog(description = "站点列表查询")
+    @ApiOperation(value="站点列表查询")
+    @ApiImplicitParam(name = "projectName", value = "站点名称")
+    @GetMapping
+    public ApiResult<PageData<ProjectResp>> queryList(HttpServletRequest request, @RequestBody ProjectSchemeQuery queryVo){
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = (String) entries.get(UserInfoKey.USER_GUID);
+        //查询用户所属组织
+        /*Set<Long> dataOrgNos = redisService.queryUserOrgNoByUserId(userId);
+        List orgNoList = Lists.newArrayList(dataOrgNos);
+
+        queryVo.setOrgNoList(orgNoList);*/
+        ApiResult<PageData<ProjectResp>> result=new ApiResult<>();
+        //查询数据库
+        PageData<ProjectResp> projectRespPageData = projectWrapper.queryProjects(queryVo);
+        result.setData(projectRespPageData);
+        return result;
+    }
+
+    @SystemControllerLog(description = "站点列表下载")
+    @ApiOperation(value="站点列表下载")
+    @ApiImplicitParam(name = "projectName", value = "站点名称")
+    @GetMapping(value = "projectsExcel")
+    public void downloadList(HttpServletResponse response,HttpServletRequest request, @RequestBody ProjectSchemeQuery queryVo){
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = (String) entries.get(UserInfoKey.USER_GUID);
+        //查询用户所属组织
+        /*Set<Long> dataOrgNos = redisService.queryUserOrgNoByUserId(userId);
+        List orgNoList = Lists.newArrayList(dataOrgNos);
+
+        queryVo.setOrgNoList(orgNoList);*/
+        //查询数据库
+        PageData<ProjectResp> projectRespPageData = projectWrapper.queryProjects(queryVo);
+        try {
+            XSSFWorkbook workBook = generateFileServiceWrapper.generateChargingProjectListExcel("站点列表下载",projectRespPageData.getList());
+            DownLoadUtil.downExcel(response,workBook);
+        } catch (Exception e) {
+            String message = "站点列表下载";
+            log.error(message,e);
+        }
+    }
+
+    @SystemControllerLog(description = "添加站点")
+    @ApiOperation(value="新增站点")
+    @ApiImplicitParam(name = "projectParam", value = "站点", required = true, dataType ="ProjectParam")
+    @PostMapping
+    public ApiResult add(HttpServletRequest request,@Valid @RequestBody ProjectParam projectParam){
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = (String) entries.get(UserInfoKey.USER_GUID);
+
+        ApiResult result = new ApiResult<>();
+        projectWrapper.addProject(projectParam);
+        log.info(JSON.toJSONString(result));
+        return result;
+    }
+
+    @SystemControllerLog(description = "修改站点")
+    @ApiOperation(value="修改站点")
+    @ApiImplicitParam(name = "projectParam", value = "站点", required = true, dataType ="ProjectParam")
+    @PutMapping
+    public ApiResult updateProject(@RequestBody ProjectParam projectParam) {
+        ApiResult result = new ApiResult<>();
+        projectWrapper.updateProject(projectParam);
+        log.info(JSON.toJSONString(result));
+        return result;
+    }
+
+    @SystemControllerLog(description = "删除站点")
+    @ApiOperation(value="删除站点")
+    @ApiImplicitParam(name = "projectGuids", value = "站点guid集合", required = true)
+    @DeleteMapping(value = "/{projectGuids}")
+    public ApiResult deleteProject(@RequestBody List<String> projectGuids) {
+        ApiResult result = new ApiResult<>();
+        projectWrapper.deleteProjectByProjectGuids(projectGuids);
+        log.info(JSON.toJSONString(result));
+        return result;
+    }
+
+    @SystemControllerLog(description = "停用启用充电方案")
+    @ApiOperation(value="停用启用充电方案")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "schemeGuid", value = "方案guid"),
+            @ApiImplicitParam(name = "onOrOff", value = "停用或启用标识（0-停用；1-启用）")
+    })
+    @PutMapping(value = "/offOnScheme")
+    public ApiResult offOnScheme(HttpServletRequest request, @RequestParam String schemeGuid, @RequestParam Integer onOrOff){
+        ApiResult result=new ApiResult();
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = (String) entries.get(UserInfoKey.USER_GUID);
+
+        //调用业务层
+        projectWrapper.offOnScheme(schemeGuid,onOrOff);
+        result.setMessage("操作成功");
+        return result;
+    }
+
+    @SystemControllerLog(description = "编辑方案")
+    @ApiImplicitParam(name = "schemeEditParam", value = "方案", required = true, dataType ="SchemeEditParam")
+    @PostMapping(value = "/schemes")
+    public ApiResult editScheme(@Valid @RequestBody SchemeEditParam schemeEditParam){
+        ApiResult result = new ApiResult();
+        //调用业务层
+        projectWrapper.editScheme(schemeEditParam);
+        result.setMessage("修改成功");
+        return result;
+    }
+
+    @SystemControllerLog(description = "方案营收分析")
+    @ApiImplicitParam(name = "projectSchemeQuery", value = "查询条件", required = true, dataType ="ProjectSchemeQuery")
+    @GetMapping(value = "/schemes/profitable")
+    public ApiResult countProfitable(@RequestBody ProjectSchemeQuery queryVo){
+        ApiResult result=new ApiResult();
+        //调用业务层
+        List<SchemePofitableResp> schemePofitableDtos = projectWrapper.countProfitable(queryVo);
+        result.setData(schemePofitableDtos);
+        return result;
+    }
+
+    @SystemControllerLog(description = "方案使用列表")
+    @ApiImplicitParam(name = "projectSchemeQuery", value = "查询条件", required = true, dataType ="ProjectSchemeQuery")
+    @GetMapping(value = "/schemes/useDetails")
+    public ApiResult shemeUseList(@RequestBody ProjectSchemeQuery queryVo){
+        ApiResult result=new ApiResult();
+        //调用业务层
+        PageData<ChargingUseDetailedResp> useList = projectWrapper.shemeUseList(queryVo);
+        result.setData(useList);
+        return result;
+    }
+
+    @SystemControllerLog(description = "充电方案使用列表下载")
+    @ApiImplicitParam(name = "projectSchemeQuery", value = "查询条件", required = true, dataType ="ProjectSchemeQuery")
+    @GetMapping(value = "/schemes/useDetailsExcel")
+    public void downShemeUseList(HttpServletResponse response, ProjectSchemeQuery queryVo){
+        //调用业务层
+        PageData<ChargingUseDetailedResp> useList = projectWrapper.shemeUseList(queryVo);
+        try {
+            XSSFWorkbook workBook = generateFileServiceWrapper.generateChargingSchemeUseListExcel("充电方案使用列表下载",useList.getList());
+            DownLoadUtil.downExcel(response,workBook);
+        } catch (Exception e) {
+            String message = "充电方案使用列表下载";
+            log.error(message,e);
+        }
+    }
+
+    @SystemControllerLog(description = "方案列表")
+    @ApiImplicitParam(name = "projectSchemeQuery", value = "查询条件", required = true, dataType ="ProjectSchemeQuery")
+    @GetMapping(value = "/shemes")
+    public ApiResult shemeList(@RequestBody ProjectSchemeQuery queryVo){
+        ApiResult result=new ApiResult();
+        //调用业务层
+        List<ChargerSchemeResp> list = projectWrapper.shemeList(queryVo);
+        result.setData(list);
+        return result;
+    }
+}

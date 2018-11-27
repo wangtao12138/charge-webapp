@@ -1,0 +1,75 @@
+package cn.com.cdboost.charge.webapi.service;
+
+
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.merchant.vo.dto.ChargingCountByRunState;
+import cn.com.cdboost.charge.merchant.vo.dto.MonitorDeviceDto;
+import cn.com.cdboost.charge.merchant.vo.info.*;
+import cn.com.cdboost.charge.webapi.dto.Device;
+import cn.com.cdboost.charge.webapi.dto.param.ChargerDeviceQueryWebParam;
+
+import java.util.List;
+
+/**
+ * @author wt
+ * @desc
+ * @create in  2018/11/5
+ **/
+/**
+ * web端充电设备管理接口
+ */
+public interface WebChargingWrapper {
+
+    PageData deviceList(ChargerDeviceQueryWebParam chargerDeviceQueryWebParam, Integer userId);
+
+    void addDevice(Device deviceWebParam, Integer userId);
+
+    //添加ic卡下发表
+    void addCardList(Device deviceWebParam);
+
+    boolean deleteDevice(List<String> chargingPlieGuids, Integer userId);
+
+    //删除ic卡下发表
+    void deleteCardList(List<String> deviceNos);
+
+    ChargingDeviceVo queryDeviceDetial(String chargingPlieGuid);
+
+    // 根据充电桩guid查询
+    ChargingDeviceVo queryByChargingPlieGuid(String chargingPlieGuid);
+
+    boolean editDevice(Device chargingDevice, Integer userId);
+
+    //修改ic卡下发表
+    void editCardList(Device chargingDevice, String oldProjectGuid);
+
+    //查询充电桩心跳间隔
+    void queryHeartStep(String id, String commNo);
+
+    //设置充电桩心跳间隔
+    void setHeartStep(String id, ChargeHeartStepVo chargeHeartStepVo);
+
+
+    //查询充电桩阈值
+    void queryThreshold(String sessionId, String commNo, String port);
+
+    //设置充电桩阈值
+    void setThreshold(String sessionId, ChargeThresholdVo chargeThresholdVo);
+
+    //web端停用或启用充电桩
+    void offOnCharge(OffOnChargeVo offOnChargeVo);
+
+
+    ChargingCountByRunState monitorDeviceCount(ChargerDeviceVo queryVo);
+
+    List<MonitorDeviceDto> monitorDeviceList(ChargerDeviceQueryMerchantVo queryVo);
+
+    /**
+     * 查询电压电流公率曲线
+     * @param sessionId
+     * @param chargingPlieGuid
+     * @param chargingGuid
+     * @param queryFlag  1--监控页曲线；2--统计页曲线
+     * @return
+     */
+    CurveQueryInfo queryCurve(String sessionId, String chargingPlieGuid, String chargingGuid, Integer queryFlag);
+}

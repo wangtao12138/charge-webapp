@@ -1,0 +1,24 @@
+package cn.com.cdboost.charge.webapi.service;
+
+import cn.com.cdboost.charge.merchant.vo.info.ChargingDeviceVo;
+import cn.com.cdboost.charge.webapi.dto.info.ChargingUseDetailedResp;
+import cn.com.cdboost.charge.webapi.dto.info.ProjectResp;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.util.List;
+
+/**
+ * excel文档生成服务接口
+ */
+public interface GenerateFileService {
+
+	XSSFWorkbook generateChargingDeviceListExcel(String name, List<ChargingDeviceVo> chargingDevices);
+
+	//项目列表
+	XSSFWorkbook generateChargingProjectListExcel(String name, List<ProjectResp> chargingProjectDtos);
+
+	//方案使用列表
+	XSSFWorkbook generateChargingSchemeUseListExcel(String name, List<ChargingUseDetailedResp> useList);
+
+}
+

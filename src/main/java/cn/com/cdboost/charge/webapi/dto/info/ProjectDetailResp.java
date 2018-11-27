@@ -1,0 +1,87 @@
+package cn.com.cdboost.charge.webapi.dto.info;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+
+@Getter
+@Setter
+@ApiModel(value = "ProjectDetailResp", description = "站点对象")
+public class ProjectDetailResp{
+
+    @ApiModelProperty(value = "站点标识")
+    private String projectGuid;
+
+    @ApiModelProperty(value = "商户标识")
+    private String merchantGuid;
+
+    @ApiModelProperty(value = "物业标识")
+    private String propertyGuid;
+
+    @ApiModelProperty(value = "站点名称")
+    private String projectName;
+
+    @ApiModelProperty(value = "站点位置")
+    private String projectAddr;
+
+    @ApiModelProperty(value = "小区名称")
+    private String communityName;
+
+    @ApiModelProperty(value = "物业公司名称")
+    private String companyName;
+
+    @ApiModelProperty(value = "联系人员")
+    private String contact;
+
+    @ApiModelProperty(value = "联系电话")
+    private String contactPhone;
+
+    @ApiModelProperty(value = "提成金额")
+    private BigDecimal upPrice;
+
+    @ApiModelProperty(value = "基础电价")
+    private BigDecimal basePrice;
+
+    @ApiModelProperty(value = "充电桩执行的电价")
+    private BigDecimal price;
+
+    @ApiModelProperty(value = "经度坐标")
+    private BigDecimal lng;
+
+    @ApiModelProperty(value = "纬度坐标")
+    private BigDecimal lat;
+
+    @ApiModelProperty(value = "1 GPS 2百度坐标")
+    private Integer locationType;
+
+    @ApiModelProperty(value = "省")
+    private String province;
+
+    @ApiModelProperty(value = "市")
+    private String city;
+
+    @ApiModelProperty(value = "区")
+    private String district;
+
+    @ApiModelProperty(value = "项目备注信息")
+    private String remark;
+
+    @ApiModelProperty(value = "数据有效 1-有效  0-删除")
+    private Integer isDel;
+
+    @ApiModelProperty(value = "方案类型：0-方案1；1-方案2")
+    private Integer schemeType;
+
+    @ApiModelProperty(value = "创建时间")
+    private String createTime;
+
+    @ApiModelProperty(value = "更新时间")
+    private String updateTime;
+
+    @ApiModelProperty(value = "总表表号")
+    private String meterNo;
+}

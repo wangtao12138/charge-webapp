@@ -1,0 +1,153 @@
+package cn.com.cdboost.charge.webapi.service.Impl;
+
+
+import cn.com.cdboost.charge.base.util.DateUtil;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.customer.dubbo.CustomerToMerchantService;
+import cn.com.cdboost.charge.customer.vo.info.CustomerPayCardInfo;
+import cn.com.cdboost.charge.customer.vo.info.UseDetailListInfo;
+import cn.com.cdboost.charge.customer.vo.param.IcCardCustomerParam;
+import cn.com.cdboost.charge.customer.vo.param.IncomePageQueryParam;
+import cn.com.cdboost.charge.merchant.dubbo.IcCardService;
+import cn.com.cdboost.charge.merchant.dubbo.ProjectService;
+import cn.com.cdboost.charge.merchant.vo.dto.IcCardListDto;
+import cn.com.cdboost.charge.merchant.vo.info.*;
+import cn.com.cdboost.charge.merchant.vo.param.ChargerICCardListParam;
+import cn.com.cdboost.charge.merchant.vo.param.IcCardParam;
+import cn.com.cdboost.charge.webapi.dto.info.CardListResp;
+import cn.com.cdboost.charge.webapi.dto.info.ChargingICPayResp;
+import cn.com.cdboost.charge.webapi.dto.info.ChargingUseDetailedResp;
+import cn.com.cdboost.charge.webapi.dto.info.ICCardResp;
+import cn.com.cdboost.charge.webapi.dto.param.ChargerICCardAddParam;
+import cn.com.cdboost.charge.webapi.dto.param.ChargerICCardEditParam;
+import cn.com.cdboost.charge.webapi.dto.param.ICCardQueryParam;
+import cn.com.cdboost.charge.webapi.service.IcCardWrapper;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import java.util.List;
+
+@Service
+@Slf4j
+public class IcCardWrapperImpl implements IcCardWrapper {
+    @Reference(version = "1.0")
+    private IcCardService icCardService;
+    @Reference(version = "1.0")
+    private CustomerToMerchantService customerToMerchantService;
+    @Reference(version = "1.0")
+    private ProjectService projectService;
+
+
+    @Override
+    public void addCard(ChargerICCardAddParam param){
+        ChargerICCardAddVo addVo = new ChargerICCardAddVo();
+        BeanUtils.copyProperties(param,addVo);
+        icCardService.addCard(addVo);
+    }
+
+    @Override
+    public void addCardList(ChargerICCardAddParam param, ApiResult result) {
+        //调用cardlist存储过程
+        ChargerICCardListParam listParam = new ChargerICCardListParam();
+        listParam.setProjectGuid(param.getProjectGuid());
+        listParam.setCardId(param.getCardId());
+        icCardService.addCardList(listParam);
+        if (listParam.getResult() == 0){
+            log.info("添加下发表失败！");
+        }else if (listParam.getResult() == 1){
+            log.info("添加成功！");
+        }else if (listParam.getResult() == 2){
+            log.info("IC卡所属站点不存在！");
+        }else if (listParam.getResult() == 3){
+            log.info("项目下无设备！");
+        }else if (listParam.getResult() == 4){
+            log.info("ic卡已不存在！");
+        }else if (listParam.getResult() == 5){
+            log.info("其他错误！");
+        }
+    }
+
+    @Override
+    public PageData<ICCardResp> queryList(ICCardQueryParam param, Integer userId) {
+        IcCardParam cardParam = new IcCardParam();
+        BeanUtils.copyProperties(param,cardParam);
+        //查询组织下所有站点
+        List<ProjectVo> projectVos = projectService.queryAllProject(userId);
+        List<String> projectGuids = Lists.newArrayList();
+        for (ProjectVo projectVo : projectVos) {
+            projectGuids.add(projectVo.getProjectGuid());
+        }
+        cardParam.setProjectGuids(projectGuids);
+
+        PageData<IcCardListDto> icCardListDtoPageData = icCardService.queryIcList(cardParam);
+        PageData<ICCardResp> respPageData = new PageData<>();
+        List<ICCardResp> respList = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(icCardListDtoPageData.getList())){
+            for (IcCardListDto dto : icCardListDtoPageData.getList()) {
+                ICCardResp resp = new ICCardResp();
+                BeanUtils.copyProperties(dto,resp);
+                respList.add(resp);
+            }
+            respPageData.setList(respList);
+            respPageData.setTotal(icCardListDtoPageData.getTotal());
+        }
+        return respPageData;
+    }
+
+    @Override
+    public void editCard(ChargerICCardEditParam param) {
+        ChargerICCardEditVo editVo = new ChargerICCardEditVo();
+        icCardService.editCard(editVo);
+    }
+
+    @Override
+    public void editCardList(ChargerICCardEditParam param, String projectGuid, ApiResult result) {
+        ChargerICCardListParam listParam = new ChargerICCardListParam();
+        icCardService.editCardList(listParam);
+        if (listParam.getResult() == 0){
+            log.info("修改下发表失败！");
+        }else if (listParam.getResult() == 1){
+            log.info("修改成功！");
+        }else if (listParam.getResult() == 2){
+            log.info("IC卡所属站点不存在！");
+        }else if (listParam.getResult() == 3){
+            log.info("项目下无设备！");
+        }else if (listParam.getResult() == 4){
+            log.info("ic卡已不存在！");
+        }else if (listParam.getResult() == 5){
+            log.info("其他错误！");
+        }
+    }
+
+    @Override
+    public PageData<CardListResp> queryCardSendList(ICCardQueryParam queryVo) {
+        PageData<CardListResp> pageData = new PageData<>();
+        IcCardParam param = new IcCardParam();
+        BeanUtils.copyProperties(queryVo,param);
+        PageData<CardSendListVo> cardSendListVoPageData = icCardService.queryIcSendList(param);
+        List<CardListResp> respList = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(cardSendListVoPageData.getList())){
+            for (CardSendListVo cardSendListVo : cardSendListVoPageData.getList()) {
+                CardListResp resp = new CardListResp();
+                BeanUtils.copyProperties(cardSendListVo,resp);
+                respList.add(resp);
+            }
+            pageData.setTotal(cardSendListVoPageData.getTotal());
+            pageData.setList(respList);
+        }
+        return pageData;
+    }
+
+    @Override
+    public PageData<CustomerPayCardInfo> queryICCardPayList(ICCardQueryParam queryVo) {
+        IcCardCustomerParam param = new IcCardCustomerParam();
+        BeanUtils.copyProperties(queryVo,param);
+        PageData<CustomerPayCardInfo> customerPayCardInfoPageData = customerToMerchantService.queryICCardPayList(param);
+        return customerPayCardInfoPageData;
+    }
+}

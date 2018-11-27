@@ -1,0 +1,99 @@
+package cn.com.cdboost.charge.webapi.service;
+
+
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.customer.vo.info.UseDetailListInfo;
+import cn.com.cdboost.charge.webapi.dto.info.*;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectParam;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectSchemeQuery;
+import cn.com.cdboost.charge.webapi.dto.param.SchemeEditParam;
+import cn.com.cdboost.charge.merchant.vo.dto.ProjectInfoDto;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * 站点相关接口
+ */
+public interface ProjectWrapper {
+    /**
+     * 新增站点
+     *
+     * @param projectParam
+     */
+    void addProject(ProjectParam projectParam);
+
+    /**
+     * 编辑站点
+     *
+     * @param projectParam
+     */
+    void updateProject(ProjectParam projectParam);
+
+    /**
+     * 删除站点
+     *
+     * @param projectGuids
+     */
+    void deleteProjectByProjectGuids(List<String> projectGuids);
+
+    /**
+     * 通过物业查询站点
+     * @param queryParam
+     * @return
+     */
+    PageData<ProjectResp> queryProjects(ProjectSchemeQuery queryParam);
+
+    /**
+     * 查询站点详情
+     *
+     * @param projectGuid
+     * @return
+     */
+    ProjectDetailResp queryProjectDetail(String projectGuid);
+
+    /**
+     * 停用或启用站点
+     * @param schemeGuid
+     * @param onOrOff
+     */
+    void offOnScheme(String schemeGuid, Integer onOrOff);
+
+    /**
+     * 编辑方案
+     * @param param
+     */
+    void editScheme(SchemeEditParam param);
+
+    /**
+     * 统计方案营收
+     * @param queryVo
+     * @return
+     */
+    List<SchemePofitableResp> countProfitable(ProjectSchemeQuery queryVo);
+
+    /**
+     * 方案使用记录
+     * @param queryVo
+     * @return
+     */
+    PageData<UseDetailListInfo> shemeUseList(ProjectSchemeQuery queryVo);
+
+    /**
+     * 方案列表
+     * @param queryVo
+     * @return
+     */
+    List<ChargerSchemeResp> shemeList(ProjectSchemeQuery queryVo);
+
+
+    List<ProjectResp> queryAllProject(Integer userId);
+
+    public List<ProjectInfoDto> queryProjectTreeByName(Set<Long> dataOrgNos, String projectName) ;
+
+    /**
+     * 查询站点使用记录
+     * @param queryVo
+     * @return
+     */
+    PageData<UseDetailListInfo> projectUseList(ProjectSchemeQuery queryVo);
+}

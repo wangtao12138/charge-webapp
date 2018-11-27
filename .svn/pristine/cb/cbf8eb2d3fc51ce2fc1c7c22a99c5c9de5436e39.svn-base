@@ -1,0 +1,110 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.constant.UserInfoKey;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.merchant.vo.dto.ProjectQueryParam;
+import cn.com.cdboost.charge.user.dubbo.OrgService;
+import cn.com.cdboost.charge.user.vo.OrgTreeNode;
+import cn.com.cdboost.charge.webapi.dto.info.ProjectTreeInfo;
+import cn.com.cdboost.charge.webapi.dto.param.ProjectTreeParam;
+import cn.com.cdboost.charge.webapi.service.TreeServiceWrapper;
+import com.alibaba.dubbo.config.annotation.Reference;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 树形菜单相关接口
+ */
+@RestController
+@Api(value ="树形菜单",tags = "树形菜单相关接口")
+@RequestMapping("/api/webapi/v1")
+public class TreeController {
+
+    @Autowired
+    private TreeServiceWrapper treeServiceWrapper;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Reference(version = "1.0")
+    private OrgService orgService;
+
+    /**
+     * 实时数据菜单树模糊查询
+     * @param session
+     * @param param
+     * @return
+     */
+    @SystemControllerLog(description = "实时数据菜单树模糊查询")
+    @GetMapping(value = "/projectfuzzyQueryTree")
+    @ApiOperation(value="实时数据菜单", notes="实时数据菜单树模糊查询接口")
+    public ApiResult projectfuzzyQueryTree(HttpSession session, HttpServletRequest request,  @ModelAttribute ProjectTreeParam param) {
+        ApiResult<List<ProjectTreeInfo>> result = new ApiResult<>();
+        long begin = System.currentTimeMillis();
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = (String) entries.get(UserInfoKey.USER_GUID);
+        param.setUserId(Integer.valueOf(userId));
+        List<ProjectTreeInfo> dataList;
+
+        dataList = treeServiceWrapper.projectfuzzyQueryTree(param);
+        result.setData(dataList);
+        long end = System.currentTimeMillis();
+        System.out.println("树菜单模糊查询总耗时"+(end-begin)+ "毫秒");
+        return result;
+    }
+
+    /**
+     * 项目组织树
+     * @param session
+     * @return
+     */
+    @SystemControllerLog(description = "项目组织树查询")
+    @GetMapping(value = "/projectTree")
+    @ApiOperation(value="项目组织树查询", notes="项目组织树查询接口")
+    public ApiResult projectTree(HttpSession session,HttpServletRequest request) {
+        ApiResult<List<ProjectTreeInfo>> result = new ApiResult<>();
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = String.valueOf( entries.get(UserInfoKey.USER_GUID));
+        List<ProjectTreeInfo> treeInfos = treeServiceWrapper.queryProjectTree(Integer.valueOf(userId));
+        result.setData(treeInfos);
+        return result;
+    }
+    /**
+     * 项目组织树子树
+     * @return
+     */
+    @SystemControllerLog(description = "项目组织树查询")
+    @GetMapping(value = "/projectTreeMainSubTree")
+    @ApiOperation(value="项目组织树查询", notes="项目组织树查询接口")
+    public ApiResult projectTree(@ModelAttribute ProjectQueryParam projectQueryParam) {
+        ApiResult<List<ProjectTreeInfo>> result = new ApiResult<>();
+        List<ProjectTreeInfo> treeInfos = treeServiceWrapper.projectTreeMainSubTree(projectQueryParam);
+        result.setData(treeInfos);
+        return result;
+    }
+
+    @SystemControllerLog(description = "客户档案新增时，查询用户组织树")
+    @GetMapping(value = "/orgTreeByOrgNo")
+    @ApiOperation(value="客户档案新增时，查询用户组织树", notes="客户档案新增时，查询用户组织树")
+    public ApiResult queryOrgTreeByOrgNo(HttpSession session,HttpServletRequest request) {
+        ApiResult<List<OrgTreeNode>> result = new ApiResult<>();
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String orgNo = String.valueOf(entries.get(UserInfoKey.CURRENT_ORGNO));
+        List<OrgTreeNode> orgTreeNodes = orgService.queryOrgTreeByOrgNo(Long.valueOf(orgNo));
+        result.setData(orgTreeNodes);
+        return result;
+    }
+}

@@ -1,0 +1,90 @@
+package cn.com.cdboost.charge.webapi.dto.info;
+
+import java.math.BigDecimal;
+
+/**
+ * 方案营收分析返回参数
+ */
+public class SchemePofitableResp {
+    private String schemeGuid;
+    private Integer payCategory;
+    private Integer useNum;
+    private BigDecimal usePower;
+    private BigDecimal consumptionMoney;
+    private BigDecimal profitable;
+    private BigDecimal deductMoney;
+    private BigDecimal money;
+    private Integer chargingTime;
+
+    public String getSchemeGuid() {
+        return schemeGuid;
+    }
+
+    public void setSchemeGuid(String schemeGuid) {
+        this.schemeGuid = schemeGuid;
+    }
+
+    public Integer getPayCategory() {
+        return payCategory;
+    }
+
+    public void setPayCategory(Integer payCategory) {
+        this.payCategory = payCategory;
+    }
+
+    public Integer getUseNum() {
+        return useNum;
+    }
+
+    public void setUseNum(Integer useNum) {
+        this.useNum = useNum;
+    }
+
+    public BigDecimal getUsePower() {
+        return usePower;
+    }
+
+    public void setUsePower(BigDecimal usePower) {
+        this.usePower = usePower;
+    }
+
+    public BigDecimal getConsumptionMoney() {
+        return consumptionMoney;
+    }
+
+    public void setConsumptionMoney(BigDecimal consumptionMoney) {
+        this.consumptionMoney = consumptionMoney;
+    }
+
+    public BigDecimal getProfitable() {
+        return profitable;
+    }
+
+    public void setProfitable(BigDecimal profitable) {
+        this.profitable = profitable;
+    }
+
+    public BigDecimal getMoney() {
+        return money;
+    }
+
+    public void setMoney(BigDecimal money) {
+        this.money = money;
+    }
+
+    public Integer getChargingTime() {
+        return chargingTime;
+    }
+
+    public void setChargingTime(Integer chargingTime) {
+        this.chargingTime = chargingTime;
+    }
+
+    public BigDecimal getDeductMoney() {
+        return deductMoney;
+    }
+
+    public void setDeductMoney(BigDecimal deductMoney) {
+        this.deductMoney = deductMoney;
+    }
+}

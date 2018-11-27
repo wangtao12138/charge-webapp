@@ -1,0 +1,16 @@
+package cn.com.cdboost.charge.webapi.service;
+
+import cn.com.cdboost.charge.merchant.vo.info.ChargingDeviceVo;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.util.List;
+
+/**
+ * excel文档生成服务接口
+ */
+public interface GenerateFileService {
+
+	XSSFWorkbook generateChargingDeviceListExcel(String name, List<ChargingDeviceVo> chargingDevices);
+
+}
+

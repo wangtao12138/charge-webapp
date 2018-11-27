@@ -1,0 +1,10 @@
+# 签名key
+header.secret.key = cdboost@1QAZ2WSX
+
+# refresh token 有效时间,单位分钟
+token.refresh.time= 10
+
+# 每个token有效期,单位分钟
+token.valid.time = 5
+
+

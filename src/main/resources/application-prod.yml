@@ -1,0 +1,11 @@
+dubbo:
+  registry:
+    id: appapi-registry
+    address: zookeeper://127.0.0.1:2181
+
+logging:
+  config: classpath:logback-spring.xml
+  # windows系统
+  # path: D:/logs/charge-webapi
+  # linux系统
+  path: /data/logs/charge-webapi

@@ -1,0 +1,39 @@
+package cn.com.cdboost.charge.webapi.service;
+
+
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.merchant.vo.info.ChargingDeviceVo;
+import cn.com.cdboost.charge.webapi.dto.Device;
+import cn.com.cdboost.charge.webapi.dto.param.ChargerDeviceQueryWebParam;
+import cn.com.cdboost.charge.webapi.dto.param.WithdrawCashListParam;
+
+import java.util.List;
+
+/**
+ * @author wt
+ * @desc
+ * @create in  2018/11/5
+ **/
+/**
+ * web端充电设备管理接口
+ */
+public interface WebChargingWrapper {
+    List<ChargingDeviceVo> deviceList(ChargerDeviceQueryWebParam chargerDeviceQueryWebParam, Integer userId);
+    void addDevice(Device deviceWebParam, Integer userId);
+    //添加ic卡下发表
+    void addCardList(Device deviceWebParam);
+    boolean deleteDevice(List<String> chargingPlieGuids, Integer userId);
+    //删除ic卡下发表
+    void deleteCardList(List<String> deviceNos);
+    ChargingDeviceVo queryDeviceDetial(String chargingPlieGuid);
+
+    // 根据充电桩guid查询
+    ChargingDeviceVo queryByChargingPlieGuid(String chargingPlieGuid);
+
+    boolean editDevice(Device chargingDevice, Integer userId);
+
+    PageData withdrawCashList(WithdrawCashListParam withdrawCashListDto);
+
+    //修改ic卡下发表
+    void editCardList(Device chargingDevice, String oldProjectGuid);
+}

@@ -1,0 +1,140 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.config.TokenProperties;
+import cn.com.cdboost.charge.base.constant.GlobalConstant;
+import cn.com.cdboost.charge.base.constant.RedisKeyConstant;
+import cn.com.cdboost.charge.base.constant.UserInfoKey;
+import cn.com.cdboost.charge.base.util.JWTUtil;
+import cn.com.cdboost.charge.base.util.MD5Util;
+import cn.com.cdboost.charge.base.util.UuidUtil;
+import cn.com.cdboost.charge.base.vo.ApiResult;
+import cn.com.cdboost.charge.user.dto.info.UserLoginInfo;
+import cn.com.cdboost.charge.user.dubbo.UserService;
+import cn.com.cdboost.charge.webapi.dto.info.LoginSuccessInfo;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.google.common.collect.Maps;
+import io.jsonwebtoken.Claims;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@Api(value = "用户登录",tags = "用户登录接口")
+@RestController
+@RequestMapping(value = "/api/webapi/v1")
+@Slf4j
+public class LoginController {
+    @Autowired
+    private TokenProperties tokenProperties;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Reference(version = "1.0")
+    private UserService userService;
+
+
+    @SystemControllerLog(description = "登录请求")
+    @ApiOperation(value="登录", notes="登录请求接口")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "loginName", value = "登录名", required = true),
+            @ApiImplicitParam(name = "password", value = "密码", required = true)
+    })
+    @GetMapping(value = "/login")
+    public ApiResult login(@RequestParam("loginName") String loginName, HttpSession session, @RequestParam("password") String password) throws Exception {
+
+        ApiResult result = new ApiResult();
+
+        // 查询用户信息
+        UserLoginInfo login = userService.login(loginName, password);
+        if (login == null){
+            result.error("未查到用户信息!");
+            return result;
+        }
+
+        // 生成token
+        String uuid = UuidUtil.getUuid();
+        int validTime = tokenProperties.getValidTime();
+        long ttl = validTime * 60 * 1000;
+        Map<String, Object> claims = new HashMap<>();
+        Date date = new Date();
+        claims.put(UserInfoKey.VERSION, date.getTime());
+        Integer userId = login.getUserId();
+        claims.put(UserInfoKey.USER_GUID,userId);
+        claims.put(UserInfoKey.USER_ROLEID,login.getRoleId());
+        claims.put(UserInfoKey.CURRENT_ORGNO,login.getOrgNo());
+        claims.put(UserInfoKey.IS_SYSTEM,login.getIsSystem());
+        //claims.put(RedisKeyConstant.USER_LOGIN+userId,login);
+        String jwt = JWTUtil.createJWT(uuid, String.valueOf(userId),ttl,claims);
+
+        // 5分钟内不用重复验证
+        String key = MD5Util.encodeMD5Hex(jwt);
+       // session.setAttribute(GlobalConstant.CURRENT_LOGIN_USER,key);
+        redisTemplate.opsForHash().putAll(key,claims);
+        redisTemplate.opsForValue().set(RedisKeyConstant.USER_LOGIN+userId,login);
+        redisTemplate.expire(key,tokenProperties.getRefreshTime(), TimeUnit.MINUTES);
+
+        //需要返回的用户信息,需修改，直接返回实体对象
+        LoginSuccessInfo successInfo = new LoginSuccessInfo();
+        successInfo.setUserId(login.getUserId());
+        successInfo.setUserName(login.getUserName());
+        successInfo.setUserMobile(login.getUserMobile());
+        successInfo.setRoleId(login.getRoleId());
+        Map map= Maps.newHashMap();
+        map.put("token",jwt);
+        map.put("successInfo",successInfo);
+
+        result.setData(map);
+
+
+
+        return result;
+    }
+
+    @SystemControllerLog(description = "退出登录")
+    @ApiOperation(value="退出登录", notes="退出登录")
+    @GetMapping(value = "/logout")
+    public ApiResult logout(HttpServletRequest request) throws Exception {
+        // 1、用户退出的话，客户端需要删掉token
+        // 2、服务器端需要删除用户等录缓存
+       /* String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = (String) entries.get(UserInfoKey.USER_GUID);*/
+        ApiResult result = new ApiResult();
+        String md5Token = (String)request.getAttribute("md5Token");
+        boolean delete = redisTemplate.delete(md5Token);
+        log.info("退出登录，删除key{}",delete);
+        boolean aBoolean = redisTemplate.hasKey(md5Token);
+        log.info("是否还存在key{}",aBoolean);
+        return result;
+    }
+
+
+    @SystemControllerLog(description = "验证密码")
+    @ApiOperation(value="验证密码", notes="验证密码")
+    @ApiImplicitParam(name = "password", value = "密码", required = true)
+    @GetMapping(value = "/validate")
+    public ApiResult checkPassword(HttpServletRequest request, @RequestParam("password") String password) throws Exception {
+        String md5Token = (String)request.getAttribute("md5Token");
+        Map entries = redisTemplate.opsForHash().entries(md5Token);
+        String userId = String.valueOf(entries.get(UserInfoKey.USER_GUID)) ;
+        ApiResult result = new ApiResult();
+
+        // 查询用户信息
+        //userService.checkPassword(Integer.parseInt(userId),password);
+        return result;
+    }
+
+}

@@ -1,0 +1,94 @@
+package cn.com.cdboost.charge.webapi.dto.param;
+
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Getter;
+import lombok.Setter;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
+
+/**
+ * 充电桩添加
+ */
+@Getter
+@Setter
+@ApiModel(value = "ChargerDeviceAddWebParam", description = "充电设备添加")
+public class ChargerDeviceAddWebParam {
+    /**
+     * 设备编号
+     */
+    @ApiModelProperty(value = "设备编号",required=true)
+    @NotBlank(message = "deviceNo不能为空")
+    private String deviceNo;
+
+    /**
+     * 充电桩端口号（1-8号端口）
+     */
+    private String port;
+
+    /**
+     * 设备名称
+     */
+    private String deviceName;
+
+    /**
+     * 安装地址
+     */
+    @ApiModelProperty(value = "安装地址",required=true)
+    @NotBlank(message = "安装地址不能为空")
+    private String installAddr;
+
+    /**
+     * 安装日期
+     */
+    private String installDate;
+
+    /**
+     * 通信方式
+     */
+    @ApiModelProperty(value = "通信方式",required=true)
+    @NotNull(message = "comMethod不能为null")
+    private Integer comMethod;
+
+    /**
+     * 通信编号
+     */
+    private String commNo;
+
+    /**
+     * 电流越限阀值
+     */
+    private BigDecimal currentLimit;
+
+    /**
+     * 变压器号
+     */
+    @ApiModelProperty(value = "变压器号",required=true)
+    @NotBlank(message = "transformerNo不能为空")
+    private String transformerNo;
+
+    /**
+     * 总表地址
+     */
+    private String meterCno;
+
+    /**
+     * 总表表号
+     */
+    @ApiModelProperty(value = "总表表号",required=true)
+    @NotBlank(message = "meterNo不能为空")
+    private String meterNo;
+
+    /**
+     * 所属项目
+     */
+    private String projectGuid;
+
+    /**
+     * 所属项目
+     */
+    private String remark;
+
+}

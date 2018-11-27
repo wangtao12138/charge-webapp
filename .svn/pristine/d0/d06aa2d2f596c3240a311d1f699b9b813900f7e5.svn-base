@@ -1,0 +1,114 @@
+package cn.com.cdboost.charge.webapi.rabbitmq;
+
+
+import cn.com.cdboost.charge.base.constant.GlobalConstant;
+import cn.com.cdboost.charge.base.constant.WebSocketConstant;
+import cn.com.cdboost.charge.base.handler.MyWebSocketHandler;
+import cn.com.cdboost.charge.base.info.Afn19Object;
+import cn.com.cdboost.charge.base.info.Afn20Object;
+import cn.com.cdboost.charge.base.lisener.Afn19DataBackLisener;
+import cn.com.cdboost.charge.base.producer.RabbitmqProducer;
+import cn.com.cdboost.charge.base.vo.WebSocketResponse;
+import cn.com.cdboost.charge.merchant.dubbo.DeviceService;
+import cn.com.cdboost.charge.merchant.vo.info.DeviceVo;
+import cn.com.cdboost.charge.webapi.constants.ChargeConstant;
+import cn.com.cdboost.charge.webapi.constants.ChargingEnum;
+import cn.com.cdboost.charge.webapi.dto.OnOffCharging;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.alibaba.fastjson.JSON;
+import jodd.util.StringUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+@Slf4j
+@Component
+public class Afn19ResultDataBackLisener implements Afn19DataBackLisener {
+
+    @Reference(version = "1.0")
+    DeviceService deviceService;
+    @Resource
+    private RabbitmqProducer rabbitmqProducer;
+    @Override
+    public void onDataBack(String afn19ObjectStr) {
+
+
+        log.info("开始或停止充电回调接口接收数据：AFN19Object=" +afn19ObjectStr);
+        Afn19Object afn19Object = JSON.parseObject(afn19ObjectStr, Afn19Object.class);
+
+        // WEB端推送
+        this.sendWebUser(afn19Object);
+    }
+    /**
+     * Web端推送
+     * @param afn19Object
+     */
+    private void sendWebUser(Afn19Object afn19Object){
+        try {
+            CopyOnWriteArraySet<WebSocketSession> users = MyWebSocketHandler.users;
+            String powerState = afn19Object.getPowerState();
+            Integer runState;
+            if (ChargeConstant.OnOffType.OFF.getType().equalsIgnoreCase(powerState) && afn19Object.getState() == 1 ){
+                if (!StringUtil.isEmpty(afn19Object.getSessionId())){//sessionId不为空表示web停用充电桩操作
+                    /*if ("0".equals(afn19Object.getNonUseFlag())){//停用指令
+                        chargingDeviceService.updateRunState(afn19Object.getMoteEUI(), ChargingEnum.OFF_STATE.getKey(),afn19Object.getPort());
+                    }else if ("-1".equals(afn19Object.getNonUseFlag())){//停充指令（中间件收到停充指令会将状态改为空闲）
+
+                    }*/
+                    //runState = ChargingEnum.OFF_STATE.getKey();
+                } else {
+                    //sessionId为空表示app端停止充电操作
+                }
+            }
+
+            if (CollectionUtils.isEmpty(users)) {
+//                logger.info("webSocket 在线用户数为空");
+                return;
+            }
+
+            //通过commNo和端口查询数据库充电桩详情
+            DeviceVo device = deviceService.queryByCommon(afn19Object.getMoteEUI(), afn19Object.getPort());
+            runState = device.getRunState();
+            for (WebSocketSession session :users){
+                HttpSession httpSession = (HttpSession) session.getAttributes().get(GlobalConstant.HTTP_SESSION_OBJECT);
+//                logger.info("WebSocket中记录的sessionId=" + httpSession.getId());
+                //判断是否为通电操作
+                if(ChargeConstant.OnOffType.ON.getType().equalsIgnoreCase(powerState)){
+                    //主动召测一次数据
+                    Afn20Object afn20Object = new Afn20Object(UUID.randomUUID().toString(),"20","999999999","0042475858fffaa",afn19Object.getMoteEUI(),afn19Object.getPort(),httpSession.getId(),null);
+                    rabbitmqProducer.sendAfn20(afn20Object);
+                    return;
+                }
+                WebSocketResponse<OnOffCharging> response = new WebSocketResponse<>();
+
+                //停用不推送长连接
+                if (runState.equals(ChargingEnum.OFF_STATE.getKey())){
+                    return;
+                }
+                OnOffCharging onOffCharging = new OnOffCharging();
+                onOffCharging.setRunState(runState);
+                onOffCharging.setStatus(afn19Object.getState());
+                onOffCharging.setPort(afn19Object.getPort());
+
+                onOffCharging.setOnline(device.getOnline());
+                onOffCharging.setDeviceNo(device.getDeviceNo());
+                onOffCharging.setChargingPlieGuid(device.getChargingPlieGuid());
+
+                response.setData(onOffCharging);
+                response.setDataFlag(WebSocketConstant.DataFlagEnum.ONOFF_DEVICE_DATA.getFlag());
+                session.sendMessage(new TextMessage(JSON.toJSONString(response)));
+                log.info("web端电瓶车充电桩停充websocket send success: data=" + JSON.toJSONString(response));
+//                logger.info("电瓶车充电桩停用websocket send success: data=" + JSON.toJSONString(response));
+            }
+        }catch (Exception e) {
+            log.error("停用充电桩异常",e);
+        }
+    }
+}

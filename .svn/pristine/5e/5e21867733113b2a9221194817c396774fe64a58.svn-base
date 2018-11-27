@@ -1,0 +1,14 @@
+package cn.com.cdboost.charge.webapi.rabbitmq;
+
+
+import cn.com.cdboost.charge.base.info.Afn19Object;
+import cn.com.cdboost.charge.base.lisener.Afn19DataBackLisener;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class Afn19ResultDataBackLisener implements Afn19DataBackLisener {
+    @Override
+    public void onDataBack(String msg) {
+        log.info("web收到队列消息"+msg);
+    }
+}

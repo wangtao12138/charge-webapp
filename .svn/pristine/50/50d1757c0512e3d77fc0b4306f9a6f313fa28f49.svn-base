@@ -1,0 +1,17 @@
+package cn.com.cdboost.charge.webapi.dto.param;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+
+@Setter
+@Getter
+public class ElectricCountQueryParam {
+    private String mark;
+    private String nodeId;
+    private Integer nodeType;
+    private List<Long> orgNoList;
+    private String beginTime;
+    private String endTime;
+}

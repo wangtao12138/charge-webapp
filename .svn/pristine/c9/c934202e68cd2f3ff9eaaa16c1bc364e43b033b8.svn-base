@@ -1,0 +1,114 @@
+package cn.com.cdboost.charge.webapi.controller;
+
+import cn.com.cdboost.charge.base.aop.SystemControllerLog;
+import cn.com.cdboost.charge.base.config.TokenProperties;
+import cn.com.cdboost.charge.base.constant.RedisKeyConstant;
+import cn.com.cdboost.charge.base.util.JWTUtil;
+import cn.com.cdboost.charge.base.util.UuidUtil;
+import cn.com.cdboost.charge.user.dto.info.MenuTreeInfo;
+import cn.com.cdboost.charge.user.dubbo.MenuService;
+import com.alibaba.dubbo.config.annotation.Reference;
+import com.alibaba.fastjson.JSON;
+import io.jsonwebtoken.Claims;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Created by Administrator on 2018/9/13 0013.
+ */
+@Api(value = "TOKEN测试管理",tags = "token测试管理接口")
+@RestController
+@RequestMapping(value = "/api/webapi/v1")
+@Slf4j
+public class TokenController {
+    @Autowired
+    private TokenProperties tokenProperties;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Reference(version = "1.0")
+    private MenuService menuService;
+
+   /* @SystemControllerLog(description = "登录请求")
+    @ApiOperation(value="登录", notes="登录请求接口")
+    @ApiImplicitParams({@ApiImplicitParam(name = "userName", value = "用户名", required = true),
+            @ApiImplicitParam(name = "password", value = "密码", required = true)})
+    @GetMapping(value = "/login/{userName}/{password}")
+    public String login(@PathVariable("userName") String userName,@PathVariable("password") String password) throws Exception {
+        // 登录操作，如果token中存储敏感信息，做加密后存储
+        String userId = "12b5bb43b989495fa89fcfe28dd18083";
+
+        // 5分钟内不用重复验证
+        String key = RedisKeyConstant.USER_LOGIN + userId;
+        Map<String, Object> claims = new HashMap<>();
+        Date date = new Date();
+        claims.put("version", date.getTime());
+        redisTemplate.opsForHash().putAll(key,claims);
+        redisTemplate.expire(key,tokenProperties.getRefreshTime(), TimeUnit.MINUTES);
+
+        // 生成token
+        String uuid = UuidUtil.getUuid();
+        int validTime = tokenProperties.getValidTime();
+        long ttl = validTime * 60 * 1000;
+        String jwt = JWTUtil.createJWT(uuid,userId,ttl,claims);
+        return jwt;
+    }*/
+
+/*    @SystemControllerLog(description = "退出登录")
+    @ApiOperation(value="退出登录", notes="退出登录")
+    @GetMapping(value = "/logout")
+    public void logout(HttpServletRequest request) throws Exception {
+        // 1、用户退出的话，客户端需要删掉token
+        // 2、服务器端需要删除用户等录缓存
+        Claims claims = (Claims) request.getAttribute("claims");
+        String userId = claims.getSubject();
+        String key = RedisKeyConstant.USER_LOGIN + userId;
+        Boolean delete = redisTemplate.delete(key);
+        System.out.println("退出登录，删除key" + delete);
+        Boolean aBoolean = redisTemplate.hasKey(key);
+        System.out.println("是否还存在key" + aBoolean);
+    }*/
+
+    @SystemControllerLog(description = "修改密码")
+    @ApiOperation(value="修改密码", notes="修改密码")
+    @GetMapping(value = "/modifyPwd")
+    public void modifyPwd(HttpServletRequest request) throws Exception {
+        Claims claims = (Claims) request.getAttribute("claims");
+        String userId = claims.getSubject();
+        String key = RedisKeyConstant.USER_LOGIN + userId;
+        Date date = new Date();
+        redisTemplate.opsForHash().put(key,"version",date.getTime());
+    }
+
+    @SystemControllerLog(description = "token验证")
+    @ApiOperation(value="token请求验证", notes="token验证接口")
+    @GetMapping(value = "/tokenTest")
+    public String tokenTest(HttpServletRequest request) throws Exception {
+        Claims claims = (Claims) request.getAttribute("claims");
+        log.info("收到token信息：" + JSON.toJSONString(claims));
+        return JSON.toJSONString(claims);
+    }
+
+    @GetMapping(value = "/login/queryMenu")
+    public String queryMenu() throws Exception {
+        List<MenuTreeInfo> list = menuService.queryAllEnabledMenus();
+        return JSON.toJSONString(list);
+    }
+}

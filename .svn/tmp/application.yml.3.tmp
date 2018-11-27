@@ -1,0 +1,54 @@
+server:
+  #端口号
+  port: 8089
+#  servlet:
+#    context-path: /
+
+# Spring boot application
+spring:
+  application:
+    name: webapi-consumer
+
+    # 环境切换 dev开发环境、test测试环境、prod生产环境
+  profiles:
+    active: @filter-resource-name@
+    include: rabbit
+
+# Dubbo配置
+## ApplicationConfig Bean
+dubbo:
+  application:
+    id: webapi-consumer
+    name: webapi-consumer
+    qos-port: 22219
+
+## ProtocolConfig Bean
+  protocol:
+    id: dubbo
+    name: dubbo
+
+## RegistryConfig Bean
+  registry:
+    id: webapi-consumer-registry
+    address: zookeeper://127.0.0.1:2181
+    # 多zookeeper服务
+<<<<<<< .mine
+   # address: zookeeper://10.10.1.163:2181?backup=10.10.1.163:2182,10.10.1.163:2183
+=======
+    # address: zookeeper://10.10.1.163:2181?backup=10.10.1.163:2182,10.10.1.163:2183
+>>>>>>> .r549
+
+  #检查服务是否可用默认为true，不可用时抛出异常，阻止spring初始化，为方便部署，可以改成false
+  consumer:
+    check: false
+
+#生成二维码
+callback:
+ url: http://wxtest.cdboost.cn
+#版本号
+version: 1.0
+
+
+
+
+

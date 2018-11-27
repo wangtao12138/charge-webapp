@@ -1,0 +1,151 @@
+package cn.com.cdboost.charge.webapi.service.Impl;
+
+import cn.com.cdboost.charge.base.exception.BusinessException;
+import cn.com.cdboost.charge.base.info.Afn23Object;
+import cn.com.cdboost.charge.base.producer.RabbitmqProducer;
+import cn.com.cdboost.charge.base.util.UuidUtil;
+import cn.com.cdboost.charge.base.vo.PageData;
+import cn.com.cdboost.charge.merchant.dubbo.WebChargingDeviceService;
+import cn.com.cdboost.charge.merchant.vo.dto.ChargingCountByRunState;
+import cn.com.cdboost.charge.merchant.vo.dto.MonitorDeviceDto;
+import cn.com.cdboost.charge.merchant.vo.info.*;
+import cn.com.cdboost.charge.merchant.vo.param.ChargerDeviceQueryParam;
+import cn.com.cdboost.charge.merchant.vo.param.DeviceParam;
+import cn.com.cdboost.charge.webapi.dto.Device;
+import cn.com.cdboost.charge.webapi.dto.param.ChargerDeviceQueryWebParam;
+import cn.com.cdboost.charge.webapi.rabbitmq.RabbitMQProducer;
+import cn.com.cdboost.charge.webapi.service.WebChargingWrapper;
+import com.alibaba.dubbo.config.annotation.Reference;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import javax.annotation.Resource;
+import java.util.List;
+
+/**
+ * @author wt
+ * @desc
+ * @create in  2018/11/5
+ **/
+@Service
+public class WebChargingWrapperImpl implements WebChargingWrapper {
+
+    @Reference(version = "1.0")
+    private WebChargingDeviceService webChargingDeviceService;
+
+    @Resource
+    private RabbitmqProducer rabbitmqProducer;
+
+    @Override
+    public PageData deviceList(ChargerDeviceQueryWebParam chargerDeviceQueryWebParam, Integer userId) {
+        ChargerDeviceQueryParam chargerDeviceQueryParam =new ChargerDeviceQueryParam();
+        BeanUtils.copyProperties(chargerDeviceQueryWebParam,chargerDeviceQueryParam);
+        return  webChargingDeviceService.deviceList(chargerDeviceQueryParam,userId);
+    }
+
+    @Override
+    public void addDevice(Device deviceWebParam, Integer userId) {
+        DeviceParam deviceParam=new DeviceParam();
+        BeanUtils.copyProperties(deviceWebParam,deviceParam);
+        webChargingDeviceService.addDevice(deviceParam,userId);
+    }
+
+    @Override
+    public void addCardList(Device deviceWebParam) {
+
+    }
+
+    @Override
+    public boolean deleteDevice(List<String> chargingPlieGuids, Integer userId) {
+        return  webChargingDeviceService.deleteDevice(chargingPlieGuids,userId);
+    }
+
+    @Override
+    public void deleteCardList(List<String> deviceNos) {
+        webChargingDeviceService.deleteCardList(deviceNos);
+    }
+
+    @Override
+    public ChargingDeviceVo queryDeviceDetial(String chargingPlieGuid) {
+        return  webChargingDeviceService.queryDeviceDetial(chargingPlieGuid);
+    }
+
+    @Override
+    public ChargingDeviceVo queryByChargingPlieGuid(String chargingPlieGuid) {
+        return webChargingDeviceService.queryByChargingPlieGuid(chargingPlieGuid);
+    }
+
+    @Override
+    public boolean editDevice(Device chargingDevice, Integer userId) {
+
+        DeviceVo deviceVo=new DeviceVo();
+        BeanUtils.copyProperties(chargingDevice,deviceVo);
+        return webChargingDeviceService.editDevice(deviceVo,userId);
+    }
+
+    @Override
+    public void editCardList(Device chargingDevice, String oldProjectGuid) {
+        DeviceVo deviceVo=new DeviceVo();
+        BeanUtils.copyProperties(chargingDevice,deviceVo);
+        Integer integer = webChargingDeviceService.editCardList(deviceVo, oldProjectGuid);
+        chargingDevice.setResult(integer);
+    }
+
+    @Override
+    public void queryHeartStep(String id, String commNo) {
+        if (StringUtils.isEmpty(commNo)) {
+            throw new BusinessException("commNo不能为空");
+        }
+        Afn23Object afn23Object = new Afn23Object(UuidUtil.getUuid(),"23","999999999","0042475858fffaa",commNo,
+                id,null,"0","");
+        //下发指令
+        int result  =  rabbitmqProducer.sendAfn23(afn23Object);
+        if (result != 1) {
+            throw new BusinessException("查询充电桩心跳间隔中间件指令发送失败");
+        }
+
+    }
+
+    @Override
+    public void setHeartStep(String id, ChargeHeartStepVo chargeHeartStepVo) {
+
+        Afn23Object afn23Object = new Afn23Object(UuidUtil.getUuid(),"23","999999999","0042475858fffaa",chargeHeartStepVo.getCommNo(),
+                id,null,"1",String.valueOf(chargeHeartStepVo.getHeartStep()));
+        //下发指令
+        int result  = rabbitmqProducer.sendAfn23(afn23Object);
+        if (result != 1) {
+            throw new BusinessException("设置充电桩心跳间隔中间件指令发送失败");
+        }
+    }
+
+    @Override
+    public void queryThreshold(String sessionId, String commNo, String port) {
+        webChargingDeviceService.queryThreshold( sessionId,  commNo,  port);
+    }
+
+    @Override
+    public void setThreshold(String sessionId, ChargeThresholdVo chargeThresholdVo) {
+        webChargingDeviceService.setThreshold(sessionId,chargeThresholdVo);
+    }
+
+    @Override
+    public void offOnCharge(OffOnChargeVo offOnChargeVo) {
+        webChargingDeviceService.offOnCharge(offOnChargeVo);
+    }
+
+    @Override
+    public ChargingCountByRunState monitorDeviceCount(ChargerDeviceVo queryVo) {
+        return webChargingDeviceService.monitorDeviceCount(queryVo);
+    }
+
+    @Override
+    public PageData monitorDeviceList(ChargerDeviceQueryMerchantVo queryVo) {
+        return webChargingDeviceService.monitorDeviceList(queryVo);
+    }
+
+    @Override
+    public CurveQueryInfo queryCurve(String sessionId, String chargingPlieGuid, String chargingGuid, Integer queryFlag) {
+        return webChargingDeviceService.queryCurve(sessionId,chargingPlieGuid,chargingGuid,queryFlag);
+    }
+}

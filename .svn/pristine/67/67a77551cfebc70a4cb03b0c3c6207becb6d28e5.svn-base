@@ -1,0 +1,32 @@
+package cn.com.cdboost.charge.webapi.rabbitmq;
+
+import cn.com.cdboost.charge.base.config.FanoutRabbitConfig;
+import cn.com.cdboost.charge.base.config.TopicRabbitConfig;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RabbitMQProducer {
+
+    @Autowired
+    private AmqpTemplate rabbitTemplate;
+
+    public void sendCharge1(String data) {
+        System.out.println("Sender msg:" + data);
+        // 第一个参数为刚刚定义的队列名称
+        this.rabbitTemplate.convertAndSend(TopicRabbitConfig.TOPIC_EXCHANGE,TopicRabbitConfig.QUEUE_CHARGE1, data);
+    }
+
+    public void sendCharge2(String data) {
+        System.out.println("Sender msg:" + data);
+        // 第一个参数为刚刚定义的队列名称
+        this.rabbitTemplate.convertAndSend(TopicRabbitConfig.TOPIC_EXCHANGE,TopicRabbitConfig.QUEUE_CHARGE2, data);
+    }
+
+    public void sendFanout(String data) {
+        System.out.println("Sender msg:" + data);
+        // 第一个参数为刚刚定义的队列名称
+        this.rabbitTemplate.convertAndSend(FanoutRabbitConfig.FANOUT_EXCHANGE,"", data);
+    }
+}

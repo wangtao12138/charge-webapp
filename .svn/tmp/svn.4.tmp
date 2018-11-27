@@ -1,0 +1,163 @@
+package cn.com.cdboost.charge.webapi.service.Impl;
+
+
+import cn.com.cdboost.charge.merchant.vo.info.ChargingDeviceVo;
+import cn.com.cdboost.charge.webapi.constants.ChargeConstant;
+import cn.com.cdboost.charge.webapi.constants.ChargingEnum;
+import cn.com.cdboost.charge.webapi.service.GenerateFileServiceWrapper;
+import org.apache.poi.xssf.usermodel.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import java.util.List;
+
+/**
+ * excel文档生成服务接口实现类
+ */
+@Service
+public class GenerateFileServiceImpl implements GenerateFileServiceWrapper {
+
+    @Override
+    public XSSFWorkbook generateChargingDeviceListExcel(String name, List<ChargingDeviceVo> chargingDevices) {
+        XSSFWorkbook workbook = new XSSFWorkbook();
+
+        XSSFCellStyle cellStyleTitle = workbook.createCellStyle();
+        cellStyleTitle.setAlignment(XSSFCellStyle.ALIGN_CENTER);
+        cellStyleTitle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER);
+        cellStyleTitle.setWrapText(true);
+        XSSFCellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.setAlignment(XSSFCellStyle.ALIGN_CENTER);
+        cellStyle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER);
+        cellStyle.setWrapText(true);
+        XSSFFont font = workbook.createFont();
+        font.setBoldweight(XSSFFont.BOLDWEIGHT_BOLD);
+        font.setFontHeight((short) 200);
+        cellStyleTitle.setFont(font);
+
+
+        XSSFSheet sheet = workbook.createSheet();
+        workbook.setSheetName(0, name);
+
+        XSSFRow row1 = sheet.createRow(1);
+        int cellIndex = 0;
+        XSSFCell cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("设备编号"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("设备程序版本"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("端口1"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("端口2"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("通信方式"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("通信编号"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("安装时间"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("安装地址"));
+        cellIndex++;
+
+        cell1 = row1.createCell(cellIndex);
+        cell1.setCellStyle(cellStyleTitle);
+        cell1.setCellValue(new XSSFRichTextString("备注"));
+        cellIndex++;
+
+
+        XSSFRow row;
+        XSSFCell cell;
+        ChargingDeviceVo chargingDeviceDto;
+        if(!CollectionUtils.isEmpty(chargingDevices)){
+            for (int i = 0; i < chargingDevices.size(); i++) {
+                chargingDeviceDto = chargingDevices.get(i);
+                row = sheet.createRow(i + 2);
+
+                cell = row.createCell(0);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(chargingDeviceDto.getDeviceNo()));
+
+                cell = row.createCell(1);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(String.valueOf(chargingDeviceDto.getVer())));
+
+                cell = row.createCell(2);
+                cell.setCellStyle(cellStyle);
+                if (chargingDeviceDto.getOnline().equals(ChargeConstant.DeviceOnlineStatus.ONLINE.getStatus())){
+                    if(chargingDeviceDto.getRunState1().equals(ChargingEnum.FREE_STATE.getKey())){
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.FREE_STATE.getMessage()));
+                    }else if (chargingDeviceDto.getRunState1().equals(ChargingEnum.ON_STATE.getKey())){
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.ON_STATE.getMessage()));
+                    }else if (chargingDeviceDto.getRunState1().equals(ChargingEnum.OFF_STATE.getKey())){
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.OFF_STATE.getMessage()));
+                    }else if (chargingDeviceDto.getRunState1().equals(ChargingEnum.ERROR_STATE.getKey())){
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.ERROR_STATE.getMessage()));
+                    }
+                }else {
+                    cell.setCellValue(new XSSFRichTextString("离线"));
+                }
+
+
+                cell = row.createCell(3);
+                cell.setCellStyle(cellStyle);
+                if (chargingDeviceDto.getOnline().equals(ChargeConstant.DeviceOnlineStatus.ONLINE.getStatus())) {
+                    if (chargingDeviceDto.getRunState2().equals(ChargingEnum.FREE_STATE.getKey())) {
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.FREE_STATE.getMessage()));
+                    } else if (chargingDeviceDto.getRunState2().equals(ChargingEnum.ON_STATE.getKey())) {
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.ON_STATE.getMessage()));
+                    } else if (chargingDeviceDto.getRunState2().equals(ChargingEnum.OFF_STATE.getKey())) {
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.OFF_STATE.getMessage()));
+                    } else if (chargingDeviceDto.getRunState2().equals(ChargingEnum.ERROR_STATE.getKey())) {
+                        cell.setCellValue(new XSSFRichTextString(ChargingEnum.ERROR_STATE.getMessage()));
+                    }
+                }else {
+                    cell.setCellValue(new XSSFRichTextString("离线"));
+                }
+
+                cell = row.createCell(4);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(chargingDeviceDto.getComMethodName()));
+
+                cell = row.createCell(5);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(chargingDeviceDto.getCommNo()));
+
+                cell = row.createCell(6);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(chargingDeviceDto.getInstallDate()));
+
+                cell = row.createCell(7);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(chargingDeviceDto.getInstallAddr()));
+
+                cell = row.createCell(8);
+                cell.setCellStyle(cellStyle);
+                cell.setCellValue(new XSSFRichTextString(chargingDeviceDto.getRemark()));
+
+            }
+        }
+        return workbook;
+    }
+
+}

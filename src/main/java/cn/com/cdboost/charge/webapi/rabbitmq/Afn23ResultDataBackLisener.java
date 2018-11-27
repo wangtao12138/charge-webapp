@@ -1,0 +1,79 @@
+package cn.com.cdboost.charge.webapi.rabbitmq;
+
+import cn.com.cdboost.charge.base.constant.GlobalConstant;
+import cn.com.cdboost.charge.base.constant.WebSocketConstant;
+import cn.com.cdboost.charge.base.handler.MyWebSocketHandler;
+import cn.com.cdboost.charge.base.info.Afn23Object;
+import cn.com.cdboost.charge.base.lisener.Afn23DataBackLisener;
+import cn.com.cdboost.charge.base.vo.WebSocketResponse;
+import cn.com.cdboost.charge.webapi.dto.Afn23Response;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+
+import javax.servlet.http.HttpSession;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+/**
+ * 读取或设置充电桩心跳间隔时间回调
+ */
+
+@Slf4j
+@Component
+public class Afn23ResultDataBackLisener implements Afn23DataBackLisener {
+
+
+    @Override
+    public void onDataBack(String afn23ObjectStr) {
+        log.info("读取或设置充电桩心跳间隔时间回调接口接收数据：Afn23Object=" + afn23ObjectStr);
+
+        // WEB推送
+        Afn23Object afn23Object = JSON.parseObject(afn23ObjectStr, Afn23Object.class);
+        this.sendWebUser(afn23Object);
+
+    }
+
+    /**
+     * WEB端推送
+     * @param afn23Object
+     */
+    private void sendWebUser(Afn23Object afn23Object){
+        try {
+            CopyOnWriteArraySet<WebSocketSession> users = MyWebSocketHandler.users;
+            if (CollectionUtils.isEmpty(users)) {
+                log.info("webSocket 在线用户数为空");
+                return;
+            }
+
+            for (WebSocketSession session :users){
+                HttpSession httpSession = (HttpSession) session.getAttributes().get(GlobalConstant.HTTP_SESSION_OBJECT);
+                if (httpSession != null){
+                    log.info("WebSocket中记录的sessionId=" + httpSession.getId());
+                    //主动推送
+                    WebSocketResponse<Afn23Response> response = new WebSocketResponse();
+                    Afn23Response res = new Afn23Response();
+                    //设置值
+                    res.setCommNo(afn23Object.getMoteEUIAES128());
+                    res.setStatus(afn23Object.getState());
+                    //判断指令类型 0:读取心跳   1:设置心跳
+                    if ("0".equals(afn23Object.getFlag())){
+                        res.setHeartStep(afn23Object.getHeart());
+                        response.setDataFlag(WebSocketConstant.DataFlagEnum.CHARGE_HEART_STEP.getFlag());
+                    }else if ("1".equals(afn23Object.getFlag())){
+                        response.setDataFlag(WebSocketConstant.DataFlagEnum.CHARGE_SETHEART_STEP.getFlag());
+                    }
+                    response.setData(res);
+
+                    session.sendMessage(new TextMessage(JSON.toJSONString(response)));
+                    log.info("读取或设置充电桩心跳间隔时间websocket send success: data=" + JSON.toJSONString(response));
+                }
+            }
+        }catch (Exception e) {
+            log.error("读取或设置充电桩心跳间隔时间websocket推送数据异常",e);
+        }
+    }
+}

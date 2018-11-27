@@ -1,0 +1,111 @@
+package cn.com.cdboost.charge.webapi.service.Impl;
+
+import cn.com.cdboost.charge.merchant.dubbo.WebChargingDeviceService;
+import cn.com.cdboost.charge.merchant.vo.info.*;
+import cn.com.cdboost.charge.merchant.vo.param.ChargerDeviceQueryParam;
+import cn.com.cdboost.charge.merchant.vo.param.DeviceParam;
+import cn.com.cdboost.charge.webapi.dto.Device;
+import cn.com.cdboost.charge.webapi.dto.param.ChargerDeviceQueryWebParam;
+import cn.com.cdboost.charge.webapi.service.WebChargingWrapper;
+import com.alibaba.dubbo.config.annotation.Reference;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * @author wt
+ * @desc
+ * @create in  2018/11/5
+ **/
+@Service
+public class WebChargingWrapperImpl implements WebChargingWrapper {
+
+    @Reference(version = "1.0")
+    private WebChargingDeviceService webChargingDeviceService;
+
+
+    @Override
+    public List<ChargingDeviceVo> deviceList(ChargerDeviceQueryWebParam chargerDeviceQueryWebParam, Integer userId) {
+        ChargerDeviceQueryParam chargerDeviceQueryParam =new ChargerDeviceQueryParam();
+        BeanUtils.copyProperties(chargerDeviceQueryWebParam,chargerDeviceQueryParam);
+        return  webChargingDeviceService.deviceList(chargerDeviceQueryParam,userId);
+    }
+
+    @Override
+    public void addDevice(Device deviceWebParam, Integer userId) {
+        DeviceParam deviceParam=new DeviceParam();
+        BeanUtils.copyProperties(deviceWebParam,deviceParam);
+        webChargingDeviceService.addDevice(deviceParam,userId);
+    }
+
+    @Override
+    public void addCardList(Device deviceWebParam) {
+
+    }
+
+    @Override
+    public boolean deleteDevice(List<String> chargingPlieGuids, Integer userId) {
+        return  webChargingDeviceService.deleteDevice(chargingPlieGuids,userId);
+    }
+
+    @Override
+    public void deleteCardList(List<String> deviceNos) {
+        webChargingDeviceService.deleteCardList(deviceNos);
+    }
+
+    @Override
+    public ChargingDeviceVo queryDeviceDetial(String chargingPlieGuid) {
+        return  webChargingDeviceService.queryDeviceDetial(chargingPlieGuid);
+    }
+
+    @Override
+    public ChargingDeviceVo queryByChargingPlieGuid(String chargingPlieGuid) {
+        return webChargingDeviceService.queryByChargingPlieGuid(chargingPlieGuid);
+    }
+
+    @Override
+    public boolean editDevice(Device chargingDevice, Integer userId) {
+
+        DeviceVo deviceVo=new DeviceVo();
+        BeanUtils.copyProperties(chargingDevice,deviceVo);
+        return webChargingDeviceService.editDevice(deviceVo,userId);
+    }
+
+    @Override
+    public void editCardList(Device chargingDevice, String oldProjectGuid) {
+        DeviceVo deviceVo=new DeviceVo();
+        BeanUtils.copyProperties(chargingDevice,deviceVo);
+        webChargingDeviceService.editDevice(deviceVo, Integer.valueOf(oldProjectGuid));
+        if (deviceVo.getResult() == 1){
+            chargingDevice.setResult(1);
+        }else if (deviceVo.getResult() == 0){
+            chargingDevice.setResult(0);
+        }
+    }
+
+    @Override
+    public void queryHeartStep(String id, String commNo) {
+        webChargingDeviceService.queryHeartStep(id,commNo);
+    }
+
+    @Override
+    public void setHeartStep(String id, ChargeHeartStepVo chargeHeartStepVo) {
+        webChargingDeviceService.setHeartStep(id,chargeHeartStepVo);
+    }
+
+    @Override
+    public void queryThreshold(String sessionId, String commNo, String port) {
+        webChargingDeviceService.queryThreshold( sessionId,  commNo,  port);
+    }
+
+    @Override
+    public void setThreshold(String sessionId, ChargeThresholdVo chargeThresholdVo) {
+        webChargingDeviceService.setThreshold(sessionId,chargeThresholdVo);
+    }
+
+    @Override
+    public void offOnCharge(OffOnChargeVo offOnChargeVo) {
+        webChargingDeviceService.offOnCharge(offOnChargeVo);
+    }
+}
